@@ -1,107 +1,92 @@
-import Back from "@/components/back";
 import Button from "@/components/button";
 import OnboardingItem from "@/components/onboard";
 import Paginator from "@/components/paginator";
+import { RoundButton } from "@/components/header";
+import { Logo } from "@/components/brand";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { onboardingData } from "@/data/onboardData";
-import useHook from "@/hooks/general-hook";
-import { useTheme } from "@/hooks/use-theme";
-import { useStyles } from "@/styles/styles";
+import { goReplace } from "@/lib/nav";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
 import { useRef, useState } from "react";
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, StatusBar, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const OnboardingScreen = () => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList<any> | null>(null);
-  const viewableItemsChanged = useRef(({ viewableItems }: any) => {
-    const nextIndex = viewableItems[0]?.index;
-    if (typeof nextIndex === "number") {
-      setCurrentIndex(nextIndex);
-    }
+export default function Onboarding() {
+  const [index, setIndex] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const listRef = useRef<FlatList<any> | null>(null);
+  const last = index === onboardingData.length - 1;
+
+  const onViewable = useRef(({ viewableItems }: any) => {
+    const next = viewableItems[0]?.index;
+    if (typeof next === "number") setIndex(next);
   }).current;
-  const { isLoading, setIsLoading } = useHook();
   const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const scrollToNext = () => {
-    if (currentIndex < onboardingData.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
-    } else {
-      finishOnboarding();
-    }
-  };
-  const scrollBack = () => {
-    if (currentIndex > 0) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex - 1 });
-    } else {
-      console.log("first")
-    }
-  };
-  const finishOnboarding = async () => {
-    setIsLoading(true);
+  const finish = async () => {
+    setBusy(true);
     try {
-      await AsyncStorage.setItem('onboarded', 'true');
-      router.replace("/auth/logIn");
+      await AsyncStorage.setItem("onboarded", "true");
     } catch (e) {
       console.error(e);
-    } finally {
-      setIsLoading(false);
     }
+    setBusy(false);
+    goReplace("/auth/register");
   };
-  const styles = useStyles();
-  const theme = useTheme();
+
+  const next = () => (last ? finish() : listRef.current?.scrollToIndex({ index: index + 1 }));
+  const prev = () => index > 0 && listRef.current?.scrollToIndex({ index: index - 1 });
+
+  const skip = async () => {
+    try {
+      await AsyncStorage.setItem("onboarded", "true");
+    } catch {}
+    goReplace("/auth/logIn");
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.paper }} edges={['top', 'bottom']}>
-      <TouchableOpacity
-        style={[styles.skip, { backgroundColor: theme.accentSurface }]}
-        onPress={finishOnboarding}
-        disabled={isLoading}
-      >
-        <ThemedText type="smallBold" style={{ color: theme.accentText }}>Skip</ThemedText>
-      </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.palette.forest900 }} edges={["top", "bottom"]}>
+      <StatusBar barStyle="light-content" />
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: Spacing.four, paddingTop: Spacing.two }}>
+        <Logo size={32} light />
+        <TouchableOpacity onPress={skip} hitSlop={12}>
+          <ThemedText type="smallBold" style={{ color: Colors.heroMuted }}>Skip</ThemedText>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
+        ref={listRef}
         data={onboardingData}
+        keyExtractor={(i) => i.id}
         renderItem={({ item }) => <OnboardingItem item={item} />}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={viewableItemsChanged}
+        onViewableItemsChanged={onViewable}
         viewabilityConfig={viewConfig}
-        ref={flatListRef}
       />
-      <Paginator data={onboardingData} currentIndex={currentIndex} />
-      <View style={onboardStyles.bottom}>
-        {
-          currentIndex > 0 &&
-          <Back onPress={scrollBack} />
-        }
-        
-        <Button
-         onPress={scrollToNext} 
-         isLoading={isLoading} 
-         title={currentIndex === onboardingData.length - 1 ? "Get Started" : "Next"}
-         style={{flex:1}}
-         icon={currentIndex === onboardingData.length - 1 ? null : "arrow-forward"}
-        />
+
+      <View style={{ paddingHorizontal: Spacing.four, paddingBottom: Spacing.three }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Paginator count={onboardingData.length} currentIndex={index} />
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {index > 0 && (
+              <View style={{ marginRight: Spacing.two }}>
+                <RoundButton icon="chevron-back" onHero onPress={prev} label="Previous" />
+              </View>
+            )}
+            <Button
+              variant="lime"
+              title={last ? "Get started" : "Next"}
+              icon={last ? undefined : "arrow-forward"}
+              onPress={next}
+              loading={busy}
+              style={{ minWidth: 150 }}
+            />
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
-};
-
-export default OnboardingScreen;
-
-const onboardStyles = StyleSheet.create({
-  bottom:{
-    flexDirection:'row',
-    alignItems:'center',
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.two,
-    gap: Spacing.two,
-  }
-});
+}

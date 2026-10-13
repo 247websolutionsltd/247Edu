@@ -1,31 +1,31 @@
-import { Colors } from "@/constants/theme";
+export type Slide = {
+  id: string;
+  kind: "save" | "spend" | "send";
+  eyebrow: string;
+  title: string;
+  description: string;
+};
 
-export const onboardingData = [
+export const onboardingData: Slide[] = [
   {
     id: "1",
-    title: "Every delivery, clearly tracked",
-    description: "See active routes, delivery progress, and arrival times in one calm, reliable dashboard.",
-    image: require("../../assets/images/onboard1.jpg"),
-    icon: "route",
-    eyebrow: "TRACK EVERY ROUTE",
-    pageColor: Colors.primary
+    kind: "save",
+    eyebrow: "SAVE",
+    title: "Grow your money, one goal at a time",
+    description: "Set goals, lock them if you need the discipline, and earn up to 14% a year on everything you put away.",
   },
   {
     id: "2",
-    title: "Send packages without the guesswork",
-    description: "Create a pickup in a few steps, choose the right service, and get a clear quote before you confirm.",
-    image: require("../../assets/images/onboard2.jpg"),
-    icon: "local-shipping",
-    eyebrow: "BOOK IN MINUTES",
-    pageColor: Colors.primary
+    kind: "spend",
+    eyebrow: "SPEND",
+    title: "A card that works everywhere online",
+    description: "Get an instant naira virtual card, pay bills and top up airtime, and freeze it in one tap if anything looks off.",
   },
   {
     id: "3",
-    title: "A better handoff from pickup to delivery",
-    description: "Stay connected with timely updates and support while your package moves through every step.",
-    image: require("../../assets/images/onboard3.jpg"),
-    icon: "support-agent",
-    eyebrow: "DELIVERY SUPPORT",
-    pageColor: Colors.primary
+    kind: "send",
+    eyebrow: "TRANSFER",
+    title: "Send money to anyone, instantly",
+    description: "Move money to any Nigerian bank account in seconds, with low fees and clear receipts every time.",
   },
 ];

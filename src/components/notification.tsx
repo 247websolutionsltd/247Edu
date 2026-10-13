@@ -1,28 +1,56 @@
-import { Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
+import { IconName } from "@/data/categories";
 import { useTheme } from "@/hooks/use-theme";
-import { useStyles } from "@/styles/styles";
-import { MaterialIcons } from "@expo/vector-icons";
-import { ComponentProps } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { ThemedText } from "./themed-text";
+import { IconBadge } from "./ui";
 
-interface NotificationProps{
-    icon: ComponentProps<typeof MaterialIcons>['name'];
-    title: string;
-    desc: string;
-    end?: boolean;
-    onPress?: () => void;
-}
-export default function NotificationCard({icon, title, desc, end=false, onPress}:NotificationProps){
-    const styles = useStyles();
-    const theme = useTheme();
-    return(
-        <TouchableOpacity style={styles.notification} onPress={onPress}>
-            <MaterialIcons name={icon} size={25} color={theme.text}/>
-            <View style={{marginLeft:Spacing.two}}>
-                <ThemedText type="bold">{title}</ThemedText>
-                <ThemedText style={{fontSize:13}}>{desc}</ThemedText>
-            </View>
-        </TouchableOpacity>
-    )
+export default function NotificationCard({
+  icon,
+  title,
+  desc,
+  time,
+  unread,
+  onPress,
+}: {
+  icon: IconName;
+  title: string;
+  desc: string;
+  time: string;
+  unread?: boolean;
+  onPress?: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        padding: Spacing.three,
+        borderRadius: Radius.md,
+        backgroundColor: unread ? theme.accentSurface : theme.card,
+        borderWidth: 1,
+        borderColor: theme.line,
+        marginBottom: Spacing.two + 2,
+      }}
+    >
+      <IconBadge icon={icon} size={44} round bg={theme.cardAlt} />
+      <View style={{ flex: 1, marginLeft: Spacing.three }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <ThemedText type="smallBold" style={{ flex: 1 }} numberOfLines={1}>
+            {title}
+          </ThemedText>
+          <ThemedText type="caption" themeColor="textSecondary" style={{ marginLeft: Spacing.two }}>
+            {time}
+          </ThemedText>
+        </View>
+        <ThemedText type="small" themeColor="textSecondary" numberOfLines={2} style={{ marginTop: 2 }}>
+          {desc}
+        </ThemedText>
+      </View>
+      {unread && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.accent, marginLeft: Spacing.two }} />}
+    </TouchableOpacity>
+  );
 }

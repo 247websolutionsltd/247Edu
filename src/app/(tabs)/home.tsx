@@ -1,290 +1,237 @@
+import Avatar from "@/components/avatar";
 import Container from "@/components/custom-container";
-import HomeCard from "@/components/homeCard";
-import Search from "@/components/search";
+import { RoundButton } from "@/components/header";
+import BigAmount from "@/components/money";
 import { ThemedText } from "@/components/themed-text";
-import { Colors, Spacing } from "@/constants/theme";
-import homeCardData from "@/data/homeCardData";
+import TransactionRow from "@/components/transaction";
+import { Card, HeroDecor, IconBadge, ProgressBar, SectionHeader } from "@/components/ui";
+import { Brand } from "@/constants/brand";
+import { Colors, Radius, Spacing, TabBarSpace } from "@/constants/theme";
+import { useAuth } from "@/context/PageContext";
+import { useWallet } from "@/context/WalletContext";
+import { IconName } from "@/data/categories";
 import { useTheme } from "@/hooks/use-theme";
-import { useStyles } from "@/styles/styles";
-import { MaterialIcons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { TouchableOpacity, View } from "react-native";
+import { compactMoney, formatMoney, greeting } from "@/lib/format";
+import { go } from "@/lib/nav";
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useMemo } from "react";
+import { ScrollView, Share, TouchableOpacity, View } from "react-native";
 
-const dashboardStats = [
-    { label: "Trips today", value: "18", icon: "local-shipping" as const },
-    { label: "On time", value: "96%", icon: "check-circle" as const },
-    { label: "Revenue", value: "$845", icon: "payments" as const },
-];
+const DAY = 86_400_000;
+const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
-const activeRoutes = [
-    { id: "LT-204", route: "Lagos Port → Ikeja Depot", eta: "12 mins", status: "On route" },
-    { id: "LT-118", route: "Yaba → Lekki Phase 1", eta: "28 mins", status: "In transit" },
-];
-
-const recentActivity = [
-    { title: "Package delivered", detail: "Order #0421 • Mainland Hub", time: "11:30 AM", orderId: "LT-0421" },
-    { title: "Driver dispatched", detail: "J. Okafor • 2 parcels", time: "09:15 AM", orderId: "LT-0204" },
-    { title: "Wallet funded", detail: "Top-up of $150.00", time: "Yesterday", orderId: "LT-0118" },
+const quickActions: { label: string; icon: IconName; route: string }[] = [
+  { label: "Add money", icon: "add", route: "/add-money/bank" },
+  { label: "Send", icon: "arrow-up", route: "/transfer" },
+  { label: "Save", icon: "leaf", route: "/(tabs)/save" },
+  { label: "Pay bills", icon: "flash", route: "/bills" },
 ];
 
 export default function Home() {
-    const styles = useStyles();
-    const theme = useTheme();
-    const [selected, setSelected] = useState(-1);
+  const theme = useTheme();
+  const { owner, user, setUser } = useAuth();
+  const { transactions, goals, balanceHidden, toggleBalanceHidden, notifications } = useWallet();
+  const walletBalance = Number(user?.balance ?? 0);
+  const savingsTotal = Number(user?.savings ?? 0);
+  const weekSpent = Number(user?.weekSpent ?? 0);
+  const firstName = owner.name.split(" ")[0];
+  const unread = notifications.some((n) => n.unread);
+  // spending = money out, excluding transfers to savings
+  const { week, weekTotal } = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const start = now.getTime() - (6 - i) * DAY;
+      return { start, letter: DAY_LETTERS[new Date(start).getDay()], total: 0, today: i === 6 };
+    });
+    transactions.forEach((t) => {
+      if (t.kind !== "debit" || t.category === "savings") return;
+      const d = days.find((x) => t.ts >= x.start && t.ts < x.start + DAY);
+      if (d) d.total += t.amount;
+    });
+    return { week: days, weekTotal: days.reduce((s, d) => s + d.total, 0) };
+  }, [transactions]);
+  const maxDay = Math.max(...week.map((d) => d.total), 1);
 
-    const selectedService = useMemo(() => {
-        if (selected >= 0) {
-            return homeCardData[selected].title;
-        }
+  const shareAccount = () =>
+    Share.share({ message: `${owner.name}\n${Brand.bankName}\n${Brand.accountNumber}` });
 
-        return "Customer Care";
-    }, [selected]);
+  useEffect(()=>{
+    // const load = async()=>{
+    //   const userID = await AsyncStorage.getItem("userID");
+    //   const userData = await getUserProfile(userID || "");
+    //   console.log("User profile:", userData);
+    //   setUser(userData);
+    //   console.log(user);
+    // }
+    // load();
+    console.log("User profile:", user);
+  })
 
-    const openQuickAction = (title: string) => {
-        const routes = {
-            "Customer Care": "/support",
-            "Send a package": "/(tabs)/send-package",
-            "Fund your wallet": "/wallet/top-up/card",
-            "Book a Rider": "/rider/book",
-            "Enroll as a Rider": "/rider/enroll",
-            "Refer and earn": "/refer",
-        } as const;
-        router.push(routes[title as keyof typeof routes] as never);
-    };
+  return (
+    <Container edges={["top"]} style={{ paddingBottom: TabBarSpace }}>
+      {/* Header */}
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: Spacing.three, paddingTop: Spacing.two }}>
+        <TouchableOpacity onPress={() => go("/(tabs)/profile")} accessibilityLabel="Open profile">
+          <Avatar name={owner.name} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, marginLeft: Spacing.three }}>
+          <ThemedText type="caption" themeColor="textSecondary">{greeting()}</ThemedText>
+          <ThemedText type="big">{firstName}</ThemedText>
+        </View>
+        <RoundButton icon="notifications-outline" label="Notifications" dot={unread} onPress={() => go("/notifications")} />
+      </View>
 
-    return (
-        <Container edges={["top"]}>
-            <View style={{ padding: Spacing.three, paddingBottom: 0 }}>
-                <View style={[styles.rowStretch, { alignItems: "flex-start" }]}>
-                    <View>
-                        <ThemedText type="small" style={{ color: theme.textSecondary }}>Good morning</ThemedText>
-                        <ThemedText type="bold" style={{ marginTop: Spacing.one }}>Welcome David 👋</ThemedText>
-                    </View>
-                    <TouchableOpacity style={{ alignItems: "flex-end" }}>
-                        <Image
-                            style={styles.homeProfile}
-                            source={{
-                                uri: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cGVyc29ufGVufDB8fDB8fHww",
-                            }}
-                        />
-                        <View style={styles.homeAddView}>
-                            <MaterialIcons name="add" size={12} color="#FFF" />
-                        </View>
-                    </TouchableOpacity>
-                </View>
+      {/* Balance hero */}
+      <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.four }}>
+        <View style={{ backgroundColor: Colors.hero, borderRadius: Radius.xl, padding: Spacing.four - 2, overflow: "hidden" }}>
+          <HeroDecor />
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <ThemedText type="label" style={{ color: Colors.heroMuted }}>Wallet balance</ThemedText>
+            <TouchableOpacity onPress={toggleBalanceHidden} hitSlop={12} accessibilityLabel={balanceHidden ? "Show balance" : "Hide balance"}>
+              <Ionicons name={balanceHidden ? "eye-off-outline" : "eye-outline"} size={20} color="#FFF" />
+            </TouchableOpacity>
+          </View>
 
+          <View style={{ marginTop: Spacing.two }}>
+            <BigAmount value={walletBalance} hidden={balanceHidden} size={40} color="#FFF" mutedColor={Colors.heroMuted} />
+          </View>
+
+          <TouchableOpacity
+            onPress={shareAccount}
+            activeOpacity={0.8}
+            style={{ flexDirection: "row", alignItems: "center", alignSelf: "flex-start", marginTop: Spacing.three, backgroundColor: Colors.heroChip, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 }}
+          >
+            <ThemedText type="caption" style={{ color: "#FFF", fontWeight: "600" }}>
+              {Brand.bankName} · {Brand.accountNumber}
+            </ThemedText>
+            <Ionicons name="share-outline" size={14} color="#FFF" style={{ marginLeft: 8 }} />
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: "row", gap: Spacing.two, marginTop: Spacing.four }}>
+            <TouchableOpacity onPress={() => go("/(tabs)/save")} activeOpacity={0.85} style={{ flex: 1, backgroundColor: "rgba(4,18,12,0.28)", borderRadius: Radius.md, padding: Spacing.three - 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons name="leaf" size={14} color={Colors.lime} />
+                <ThemedText type="caption" style={{ color: Colors.heroMuted, marginLeft: 6 }}>Savings</ThemedText>
+              </View>
+              <ThemedText type="bold" style={{ color: "#FFF", marginTop: 4 }}>{balanceHidden ? "••••" : compactMoney(savingsTotal)}</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => go("/activity")} activeOpacity={0.85} style={{ flex: 1, backgroundColor: "rgba(4,18,12,0.28)", borderRadius: Radius.md, padding: Spacing.three - 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons name="trending-down" size={14} color={Colors.lime} />
+                <ThemedText type="caption" style={{ color: Colors.heroMuted, marginLeft: 6 }}>Spent this week</ThemedText>
+              </View>
+              <ThemedText type="bold" style={{ color: "#FFF", marginTop: 4 }}>{balanceHidden ? "••••" : compactMoney(weekSpent)}</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Quick actions */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: Spacing.four, marginTop: Spacing.four }}>
+        {quickActions.map((a) => (
+          <TouchableOpacity key={a.label} onPress={() => go(a.route)} activeOpacity={0.8} style={{ alignItems: "center", width: 74 }} accessibilityLabel={a.label}>
+            <View style={{ width: 62, height: 62, borderRadius: 22, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name={a.icon} size={24} color={theme.accent} />
+            </View>
+            <ThemedText type="caption" style={{ marginTop: Spacing.two, fontWeight: "600" }}>{a.label}</ThemedText>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Goals */}
+      <View style={{ marginTop: Spacing.five }}>
+        <View style={{ paddingHorizontal: Spacing.three }}>
+          <SectionHeader title="Savings goals" action="See all" onAction={() => go("/(tabs)/save")} />
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: Spacing.three, gap: Spacing.three }}>
+          {goals.map((g) => (
+            <Card key={g.id} onPress={() => go(`/save/${g.id}`)} style={{ width: 216 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <IconBadge icon={g.icon} size={42} />
+                {g.locked && <Ionicons name="lock-closed" size={14} color={theme.textSecondary} />}
+              </View>
+              <ThemedText type="smallBold" style={{ marginTop: Spacing.three }} numberOfLines={1}>{g.name}</ThemedText>
+              <ThemedText type="caption" themeColor="textSecondary" style={{ marginTop: 2 }}>
+                {compactMoney(g.saved)} of {compactMoney(g.target)}
+              </ThemedText>
+              <View style={{ marginTop: Spacing.three }}>
+                <ProgressBar value={g.saved / g.target} />
+              </View>
+            </Card>
+          ))}
+          <TouchableOpacity
+            onPress={() => go("/save/new-goal")}
+            activeOpacity={0.8}
+            style={{ width: 130, borderRadius: Radius.lg, borderWidth: 1.5, borderStyle: "dashed", borderColor: theme.inkSoft, alignItems: "center", justifyContent: "center", padding: Spacing.three }}
+          >
+            <Ionicons name="add-circle-outline" size={28} color={theme.accent} />
+            <ThemedText type="smallBold" style={{ marginTop: Spacing.two, color: theme.accent }}>New goal</ThemedText>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
+      {/* Weekly insight */}
+      <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.five }}>
+        <SectionHeader title="This week" />
+        <Card>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <View>
+              <ThemedText type="caption" themeColor="textSecondary">Total spent</ThemedText>
+              <ThemedText type="subtitle" style={{ marginTop: 2 }}>{balanceHidden ? "₦••••••" : formatMoney(weekSpent, { decimals: false })}</ThemedText>
+            </View>
+            <TouchableOpacity onPress={() => go("/(tabs)/cards")} hitSlop={10}>
+              <ThemedText type="smallBold" style={{ color: theme.accent }}>Breakdown</ThemedText>
+            </TouchableOpacity>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 110, marginTop: Spacing.four }}>
+            {week.map((d, i) => (
+              <View key={i} style={{ flex: 1, alignItems: "center", justifyContent: "flex-end" }}>
                 <View
-                    style={{
-                        marginTop: Spacing.three,
-                        backgroundColor: Colors.primaryDark,
-                        borderRadius: 22,
-                        padding: Spacing.three,
-                    }}
-                >
-                    <View style={[styles.rowStretch, { alignItems: "flex-start" }]}>
-                        <View style={{ flex: 1 }}>
-                            <ThemedText type="small" style={{ color: "#dfeee1" }}>Available balance</ThemedText>
-                            <ThemedText type="title" style={{ marginTop: Spacing.one, color: "#FFF", fontSize: 32 }}>
-                                $2,480.60
-                            </ThemedText>
-                        </View>
-                        <View
-                            style={{
-                                width: 42,
-                                height: 42,
-                                borderRadius: 14,
-                                backgroundColor: "rgba(120, 160, 131, 0.25)",
-                                alignItems: "center",
-                                justifyContent: "center",
-                            }}
-                        >
-                            <MaterialIcons name="bolt" size={20} color="#FFF" />
-                        </View>
-                    </View>
+                  style={{
+                    width: 26,
+                    height: Math.max(6, (d.total / maxDay) * 84),
+                    borderRadius: 8,
+                    backgroundColor: d.today ? theme.accent : theme.line,
+                  }}
+                />
+                <ThemedText type="caption" themeColor={d.today ? "accent" : "textSecondary"} style={{ marginTop: 8, fontWeight: d.today ? "700" : "500" }}>
+                  {d.letter}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </Card>
+      </View>
 
-                    <View style={[styles.rowStretch, { marginTop: Spacing.three, alignItems: "stretch" }]}>
-                        {dashboardStats.map((item) => (
-                            <View
-                                key={item.label}
-                                style={{
-                                    flex: 1,
-                                    backgroundColor: "rgba(255,255,255,0.08)",
-                                    borderRadius: 14,
-                                    padding: Spacing.two,
-                                    marginHorizontal: Spacing.half,
-                                }}
-                            >
-                                <MaterialIcons name={item.icon} size={18} color="#dfeee1" />
-                                <ThemedText type="small" style={{ marginTop: Spacing.one, color: "#dfeee1" }}>
-                                    {item.label}
-                                </ThemedText>
-                                <ThemedText type="bold" style={{ marginTop: Spacing.half, color: "#FFF" }}>
-                                    {item.value}
-                                </ThemedText>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-            </View>
+      {/* Recent transactions */}
+      <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.five }}>
+        <SectionHeader title="Recent activity" action="See all" onAction={() => go("/activity")} />
+        <Card style={{ paddingVertical: Spacing.one }}>
+          {transactions.slice(0, 5).map((t, i, arr) => (
+            <TransactionRow key={t.id} tx={t} hidden={balanceHidden} last={i === arr.length - 1} onPress={() => go(`/transaction/${t.id}`)} />
+          ))}
+        </Card>
+      </View>
 
-            <Search style={{ marginHorizontal: Spacing.three, marginTop: Spacing.three }} />
-
-            <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.three }}>
-                <View style={[styles.rowStretch, { marginBottom: Spacing.two }]}>
-                    <ThemedText type="bold">Quick actions</ThemedText>
-                    <TouchableOpacity onPress={() => router.push({ pathname: "/search-results", params: { query: "" } } as never)}>
-                        <ThemedText type="small" style={{ color: theme.accentText }}>View all</ThemedText>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={[styles.rowWrap, { marginHorizontal: -Spacing.two }]}>
-                    {homeCardData.map((item, index) => (
-                        <View style={styles.homeCardView} key={index}>
-                            <HomeCard
-                                icon={item.icon}
-                                title={item.title}
-                                desc={item.desc}
-                                onPress={() => { openQuickAction(item.title); }}
-                            />
-                        </View>
-                    ))}
-                </View>
-            </View>
-
-            <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.three }}>
-                <View style={[styles.rowStretch, { marginBottom: Spacing.two }]}>
-                    <ThemedText type="bold">Active delivery lanes</ThemedText>
-                    <TouchableOpacity onPress={() => router.push("/track-shipment?orderId=LT-0204" as never)}>
-                        <ThemedText type="small" style={{ color: theme.accentText }}>Today</ThemedText>
-                    </TouchableOpacity>
-                </View>
-
-                <View
-                    style={{
-                        backgroundColor: theme.background,
-                        borderRadius: 18,
-                        borderWidth: 1,
-                        borderColor: theme.line,
-                        padding: Spacing.two,
-                    }}
-                >
-                    {activeRoutes.map((route) => (
-                        <View
-                            key={route.id}
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                paddingVertical: Spacing.two,
-                                borderBottomWidth: route.id === activeRoutes[activeRoutes.length - 1].id ? 0 : 1,
-                                borderBottomColor: theme.line,
-                            }}
-                        >
-                            <View style={{ flex: 1, marginRight: Spacing.two }}>
-                                <View style={[styles.row, { marginBottom: Spacing.one }]}>
-                                    <MaterialIcons name="route" size={16} color={Colors.primary} style={{ marginRight: Spacing.one }} />
-                                    <ThemedText type="smallBold">{route.id}</ThemedText>
-                                    <View
-                                        style={{
-                                            marginLeft: Spacing.one,
-                                            paddingHorizontal: Spacing.one,
-                                            paddingVertical: 2,
-                                            borderRadius: 999,
-                                            backgroundColor: theme.accentSurface,
-                                        }}
-                                    >
-                                        <ThemedText type="small" style={{ color: theme.accentText, fontSize: 11 }}>
-                                            {route.status}
-                                        </ThemedText>
-                                    </View>
-                                </View>
-                                <ThemedText type="small" style={{ color: theme.textSecondary, lineHeight: 18 }}>
-                                    {route.route}
-                                </ThemedText>
-                            </View>
-                            <View style={{ alignItems: "flex-end" }}>
-                                <ThemedText type="smallBold" style={{ color: theme.accentText }}>{route.eta}</ThemedText>
-                                <ThemedText type="small" style={{ color: theme.textSecondary }}>ETA</ThemedText>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-            </View>
-
-            <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.three, paddingBottom: Spacing.three }}>
-                <View style={[styles.rowStretch, { marginBottom: Spacing.two }]}>
-                    <ThemedText type="bold">{selectedService}</ThemedText>
-                    <TouchableOpacity onPress={() => router.push("/track-shipment?orderId=LT-0204" as never)}>
-                        <ThemedText type="small" style={{ color: theme.accentText }}>See details</ThemedText>
-                    </TouchableOpacity>
-                </View>
-
-                <View
-                    style={{
-                        backgroundColor: theme.accentSurface,
-                        borderRadius: 18,
-                        padding: Spacing.three,
-                    }}
-                >
-                    <ThemedText type="small" style={{ color: theme.accentText, marginBottom: Spacing.one }}>
-                        Ready to serve
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: theme.textSecondary, lineHeight: 20 }}>
-                        {selected >= 0
-                            ? homeCardData[selected].desc
-                            : "Our fleet is active and ready to handle your delivery requests with real-time tracking and fast dispatch support."}
-                    </ThemedText>
-                </View>
-
-                <View style={{ marginTop: Spacing.three }}>
-                    <View style={[styles.rowStretch, { marginBottom: Spacing.two }]}>
-                        <ThemedText type="bold">Recent activity</ThemedText>
-                        <TouchableOpacity onPress={() => router.push({ pathname: "/search-results", params: { query: "" } } as never)}>
-                            <ThemedText type="small" style={{ color: theme.accentText }}>All</ThemedText>
-                        </TouchableOpacity>
-                    </View>
-
-                    {recentActivity.map((item, index) => (
-                        <TouchableOpacity
-                            key={item.title}
-                            onPress={() => router.push(`/order/${item.orderId}` as never)}
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                paddingVertical: Spacing.two,
-                                borderBottomWidth: index === recentActivity.length - 1 ? 0 : 1,
-                                borderBottomColor: theme.line,
-                            }}
-                        >
-                            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                                <View
-                                    style={{
-                                        width: 38,
-                                        height: 38,
-                                        borderRadius: 12,
-                                        backgroundColor: theme.accentSurface,
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        marginRight: Spacing.two,
-                                    }}
-                                >
-                                    <MaterialIcons name={index === 0 ? "local-shipping" : index === 1 ? "person-pin-circle" : "payments"} size={18} color={theme.accentText} />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <ThemedText type="smallBold">{item.title}</ThemedText>
-                                    <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 2 }}>
-                                        {item.detail}
-                                    </ThemedText>
-                                </View>
-                            </View>
-                            <ThemedText type="small" style={{ color: theme.textSecondary }}>{item.time}</ThemedText>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-        </Container>
-    );
+      {/* Referral banner */}
+      <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.five }}>
+        <TouchableOpacity
+          onPress={() => go("/refer")}
+          activeOpacity={0.9}
+          style={{ backgroundColor: Colors.lime, borderRadius: Radius.lg, padding: Spacing.four - 4, flexDirection: "row", alignItems: "center", overflow: "hidden" }}
+        >
+          <View style={{ flex: 1 }}>
+            <ThemedText type="bold" style={{ color: Colors.palette.forest950 }}>Invite friends, earn ₦2,000</ThemedText>
+            <ThemedText type="small" style={{ color: Colors.palette.forest800, marginTop: 4 }}>
+              They get ₦2,000 too when they fund their wallet.
+            </ThemedText>
+          </View>
+          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.palette.forest950, alignItems: "center", justifyContent: "center", marginLeft: Spacing.three }}>
+            <Ionicons name="gift" size={22} color={Colors.lime} />
+          </View>
+        </TouchableOpacity>
+      </View>
+    </Container>
+  );
 }

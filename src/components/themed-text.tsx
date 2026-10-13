@@ -1,97 +1,48 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
-  type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code' | 'bold' | 'large' | 'mid' | 'big';
+  type?:
+    | 'default'
+    | 'display'
+    | 'title'
+    | 'subtitle'
+    | 'large'
+    | 'big'
+    | 'bold'
+    | 'mid'
+    | 'small'
+    | 'smallBold'
+    | 'caption'
+    | 'label'
+    | 'amount';
   themeColor?: ThemeColor;
 };
 
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
   const theme = useTheme();
-
   return (
     <Text
-      style={[
-        { color: theme[themeColor ?? 'text'] },
-        type === 'default' && styles.default,
-        type === 'title' && styles.title,
-        type === 'small' && styles.small,
-        type === 'smallBold' && styles.smallBold,
-        type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
-        type === 'linkPrimary' && styles.linkPrimary,
-        type === 'code' && styles.code,
-        type === 'bold' && styles.bold,
-        type === 'large' && styles.large,
-        type === 'big' && styles.big,
-        type === 'mid' && styles.mid,
-        style,
-      ]}
+      style={[{ color: theme[themeColor ?? 'text'] }, styles[type], style]}
       {...rest}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  small: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
-  },
-  smallBold: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 700,
-  },
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 400,
-  },
-  bold: {
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: 500,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: 600,
-    lineHeight: 35,
-  },
-  subtitle: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: 600,
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 14,
-  },
-  linkPrimary: {
-    lineHeight: 30,
-    fontSize: 14,
-    color: '#3c87f7',
-  },
-  code: {
-    fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
-    fontSize: 12,
-  },
-  large: {
-    fontSize: 28,
-    lineHeight: 32,
-    fontWeight: 600,
-  },
-  mid: {
-    fontSize: 15,
-    lineHeight: 18,
-    fontWeight: 400,
-  },
-  big: {
-    fontSize: 24,
-    lineHeight: 28,
-    fontWeight: 600,
-  },
+  default: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
+  display: { fontSize: 40, lineHeight: 44, fontWeight: '800', letterSpacing: -1.2 },
+  title: { fontSize: 30, lineHeight: 36, fontWeight: '800', letterSpacing: -0.8 },
+  subtitle: { fontSize: 24, lineHeight: 30, fontWeight: '700', letterSpacing: -0.4 },
+  large: { fontSize: 28, lineHeight: 34, fontWeight: '800', letterSpacing: -0.6 },
+  big: { fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -0.3 },
+  bold: { fontSize: 17, lineHeight: 22, fontWeight: '700' },
+  mid: { fontSize: 15, lineHeight: 21, fontWeight: '500' },
+  small: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
+  smallBold: { fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  caption: { fontSize: 12, lineHeight: 16, fontWeight: '500' },
+  label: { fontSize: 11, lineHeight: 14, fontWeight: '700', letterSpacing: 1.1, textTransform: 'uppercase' },
+  amount: { fontSize: 16, lineHeight: 22, fontWeight: '700', fontVariant: ['tabular-nums'] },
 });

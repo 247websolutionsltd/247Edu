@@ -1,40 +1,21 @@
 import { Colors } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 
-const Paginator = ({ data, currentIndex }: any) => {
-  const theme = useTheme();
+export default function Paginator({ count, currentIndex }: { count: number; currentIndex: number }) {
   return (
-    <View style={styles.container}>
-      {data.map((_: any, index: number) => (
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      {Array.from({ length: count }).map((_, i) => (
         <View
-          key={index}
-          style={[
-            styles.dot,
-            {backgroundColor: theme.inkSoft},
-            currentIndex === index && styles.activeDot,
-          ]}
+          key={i}
+          style={{
+            height: 8,
+            width: currentIndex === i ? 28 : 8,
+            borderRadius: 4,
+            marginRight: 6,
+            backgroundColor: currentIndex === i ? Colors.lime : "rgba(255,255,255,0.25)",
+          }}
         />
       ))}
     </View>
   );
-};
-
-export default Paginator;
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  dot: {
-    height: 8,
-    width: 8,
-    borderRadius: 4,
-    margin: 5,
-  },
-  activeDot: {
-    backgroundColor: Colors.primary,
-    width: 20,
-  },
-});
+}

@@ -2,55 +2,8 @@ import { useState } from "react";
 
 export default function useHook() {
   const [isLoading, setIsLoading] = useState(false);
-  const linter = (sentence:string, max=22)=> {
-    let result = sentence
-    if (sentence.length >= max){
-      result = result.split("").splice(0,max).join("") + "...";
-    }
-    return result;
-  }
 
-  const formatPrice = (price: string) => {
-    const number = Number(String(price).replace(/,/g, ""));
+  const firstCapital = (word: string) => (word ? word[0].toUpperCase() + word.slice(1) : word);
 
-    if (number >= 1_000_000) {
-      return `${(number / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-    }
-
-    if (number >= 1_000) {
-      return `${(number / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-    }
-
-    return number.toString();
-  };
-
-  const infoFormat = (info:string) => {
-    const infoArray = info.split(" "); 
-    switch (infoArray[1]) {
-      case "Bedrooms":
-        return infoArray[0]+" bd"
-      case "Bathrooms":
-        return infoArray[0]+" ba"
-      case "Square-Feet":
-        return infoArray[0]+" sf"
-      default:
-        break;
-    }
-  }
-
-  const firstCapital = (word:string) => {
-    const wordArray = word.split("");
-    const first = wordArray.splice(0,1)[0].toUpperCase();
-    wordArray.unshift(first);
-    return wordArray.join("");
-  }
-
-  return {
-    isLoading,
-    setIsLoading,
-    linter,
-    formatPrice,
-    infoFormat,
-    firstCapital
-  };
+  return { isLoading, setIsLoading, firstCapital };
 }

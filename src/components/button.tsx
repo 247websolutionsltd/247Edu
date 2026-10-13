@@ -1,79 +1,82 @@
-import { Spacing } from '@/constants/theme';
-import { useAuth } from '@/context/PageContext';
-import { useTheme } from '@/hooks/use-theme';
-import { useStyles } from '@/styles/styles';
-import { MaterialIcons } from "@expo/vector-icons";
-import {
-    ActivityIndicator,
-    TouchableOpacity,
-    View,
-    ViewProps
-} from "react-native";
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
+import { Ionicons } from "@expo/vector-icons";
+import { ComponentProps } from "react";
+import { ActivityIndicator, StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { ThemedText } from "./themed-text";
 
-type Type = "primary" | "secondary";
-type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"];
-interface props extends ViewProps {
-  onPress: () => void;
-  buttonColor?: string;
-  textColor?: string;
-  type?: Type;
-  isLoading?: boolean;
+type IconName = ComponentProps<typeof Ionicons>["name"];
+type Variant = "primary" | "secondary" | "lime" | "soft" | "danger";
+
+type Props = {
   title: string;
-  textSize?: number;
-  icon?: MaterialIconName | null;
-  iconLeft?: MaterialIconName | null;
-  disabled?: boolean
-}
+  onPress: () => void;
+  variant?: Variant;
+  loading?: boolean;
+  disabled?: boolean;
+  icon?: IconName;
+  iconLeft?: IconName;
+  small?: boolean;
+  style?: StyleProp<ViewStyle>;
+};
 
 export default function Button({
-  onPress,
-  buttonColor,
-  textColor,
-  icon,
-  type = "primary",
-  isLoading,
-  textSize=18,
   title,
-  disabled=false,
-  style,
+  onPress,
+  variant = "primary",
+  loading = false,
+  disabled = false,
+  icon,
   iconLeft,
-}: props) {
- const theme = useTheme();
- const styles = useStyles();
- const {loading} = useAuth();
- const btnLoad = isLoading === undefined ? loading : isLoading;
+  small = false,
+  style,
+}: Props) {
+  const theme = useTheme();
+
+  const palette = {
+    primary: { bg: theme.cta, fg: theme.ctaText, border: "transparent" },
+    lime: { bg: Colors.lime, fg: Colors.palette.forest950, border: "transparent" },
+    soft: { bg: theme.accentSurface, fg: theme.accentText, border: "transparent" },
+    secondary: { bg: "transparent", fg: theme.text, border: theme.line },
+    danger: { bg: "transparent", fg: theme.danger, border: theme.line },
+  }[variant];
 
   return (
     <TouchableOpacity
+      activeOpacity={0.85}
       onPress={onPress}
+      disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={title}
       style={[
-        type === "primary" ? styles.button : styles.button2,
-        {opacity:disabled?0.5:1},
+        styles.base,
+        small && styles.small,
+        { backgroundColor: palette.bg, borderColor: palette.border, opacity: disabled ? 0.45 : 1 },
         style,
       ]}
-      disabled={disabled}
     >
-      {btnLoad ? (
-        <ActivityIndicator size={27} color={"#FFF"}/>
+      {loading ? (
+        <ActivityIndicator color={palette.fg} />
       ) : (
         <View style={styles.row}>
-          {
-            iconLeft &&
-            <MaterialIcons name={iconLeft} size={22} color={"#FFF"} style={{marginRight:Spacing.one}}/>
-          }
-          <ThemedText
-           style={{color:type === "secondary" ? textColor || theme.text : '#FFF', fontSize:textSize}}
-            type='bold'>
-              {title}
-            </ThemedText>
-          {
-            icon &&
-            <MaterialIcons name={icon} size={textSize || 22} color={"#FFF"}/>
-          }
-          
+          {iconLeft && <Ionicons name={iconLeft} size={small ? 16 : 20} color={palette.fg} style={{ marginRight: Spacing.two }} />}
+          <ThemedText style={{ color: palette.fg, fontSize: small ? 14 : 16, fontWeight: "700" }}>{title}</ThemedText>
+          {icon && <Ionicons name={icon} size={small ? 16 : 20} color={palette.fg} style={{ marginLeft: Spacing.two }} />}
         </View>
       )}
     </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  base: {
+    height: 58,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.four,
+  },
+  small: { height: 42, paddingHorizontal: Spacing.three },
+  row: { flexDirection: "row", alignItems: "center" },
+});

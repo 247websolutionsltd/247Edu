@@ -1,89 +1,35 @@
-import Back from "@/components/back";
 import Container from "@/components/custom-container";
+import Header from "@/components/header";
 import { ThemedText } from "@/components/themed-text";
+import { Brand } from "@/constants/brand";
 import { Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
-import { useStyles } from "@/styles/styles";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 
-const privacySections = [
-  {
-    title: "Information we collect",
-    text: "We collect the information needed to provide delivery, payment, and account support services, including profile details, contact information, order history, and device information used to protect your account.",
-  },
-  {
-    title: "How we use it",
-    text: "This data is used to create and manage routes, process transactions, improve service quality, provide customer support, and keep your account secure.",
-  },
-  {
-    title: "Your choices",
-    text: "You can update your profile, set communication preferences, and review saved addresses or payment methods at any time from your account settings.",
-  },
-  {
-    title: "Security",
-    text: "We take reasonable steps to protect your personal information using secure systems, encryption, and account safeguards. However, no method of digital transmission is completely risk-free.",
-  },
+const sections = [
+  { t: "Information we collect", b: "We collect the details you give us (name, phone, email, ID) and information about how you use the app, such as transactions and device data, so we can run your account safely." },
+  { t: "How we use it", b: "To process payments, prevent fraud, meet regulatory requirements and improve your experience. We never sell your personal data." },
+  { t: "How we protect it", b: "Your data is encrypted in transit and at rest. Access is restricted to staff who need it, and sensitive actions require your PIN or biometrics." },
+  { t: "Your choices", b: `You can update your details in Profile at any time, or contact ${Brand.supportEmail} to request a copy of your data or close your account.` },
 ];
 
-export default function PrivacyPolicy() {
-    const theme = useTheme();
-    const styles = useStyles();
-
+export default function Privacy() {
   return (
-    <Container edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: Spacing.three, paddingBottom: Spacing.five }}>
-        <View style={[styles.row, {marginBottom:Spacing.three}]}>
-            <Back icon="arrow-back"/>
-            <ThemedText type="large" style={{ marginTop: Spacing.three, marginBottom: Spacing.two }}>
-                Privacy policy
-            </ThemedText>
-        </View>
-
-        <View
-          style={{
-            backgroundColor: theme.background,
-            borderRadius: 18,
-            borderWidth: 1,
-            borderColor: theme.line,
-            overflow: "hidden",
-          }}
-        >
-          <View style={{ padding: Spacing.three }}>
-            <ThemedText type="small" style={{ color: theme.accentText, marginBottom: Spacing.two }}>
-              Last updated: September 2026
-            </ThemedText>
-
-            <ThemedText type="small" style={{ color: theme.textSecondary, lineHeight: 22 }}>
-              This privacy policy explains how 247 Logistics collects, uses, stores, and protects your personal information. By using our platform, you agree to the practices described below.
-            </ThemedText>
+    <Container edges={["top", "bottom"]}>
+      <Header title="Privacy policy" />
+      <View style={{ paddingHorizontal: Spacing.three }}>
+        <ThemedText themeColor="textSecondary" style={{ lineHeight: 24 }}>
+          At {Brand.name}, your money and your privacy come first. Here's a plain-English summary of how we handle your information.
+        </ThemedText>
+        {sections.map((s) => (
+          <View key={s.t} style={{ marginTop: Spacing.four }}>
+            <ThemedText type="big">{s.t}</ThemedText>
+            <ThemedText themeColor="textSecondary" style={{ marginTop: Spacing.two, lineHeight: 24 }}>{s.b}</ThemedText>
           </View>
-
-          {privacySections.map((section) => (
-            <View
-              key={section.title}
-              style={{
-                paddingHorizontal: Spacing.three,
-                paddingVertical: Spacing.three,
-                borderTopWidth: 1,
-                borderTopColor: theme.line,
-              }}
-            >
-              <ThemedText type="smallBold" style={{ marginBottom: Spacing.one }}>
-                {section.title}
-              </ThemedText>
-              <ThemedText type="small" style={{ color: theme.textSecondary, lineHeight: 22 }}>
-                {section.text}
-              </ThemedText>
-            </View>
-          ))}
-
-          <View style={{ padding: Spacing.three, borderTopWidth: 1, borderTopColor: theme.line }}>
-            <ThemedText type="small" style={{ color: theme.textSecondary, lineHeight: 22 }}>
-              If you have questions about this policy or your account data, contact our support team at privacy@247logistics.com.
-            </ThemedText>
-          </View>
-        </View>
-      </ScrollView>
+        ))}
+        <ThemedText type="caption" themeColor="textSecondary" style={{ marginTop: Spacing.five }}>
+          Placeholder text. Replace with your legal team's policy before launch.
+        </ThemedText>
+      </View>
     </Container>
   );
 }

@@ -1,8 +1,8 @@
-
-import { Colors } from "@/constants/theme";
+import { Colors, Radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { router, Tabs } from "expo-router";
+import { go } from "@/lib/nav";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import { Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,40 +10,24 @@ type IconName = keyof typeof Ionicons.glyphMap;
 
 const TAB_META: Record<string, { label: string; icon: IconName; iconActive: IconName }> = {
   home: { label: "Home", icon: "home-outline", iconActive: "home" },
-  wallet: { label: "Wallet", icon: "wallet-outline", iconActive: "wallet" },
-  notification: { label: "Notifications", icon: "notifications-outline", iconActive: "notifications" },
+  save: { label: "Save", icon: "leaf-outline", iconActive: "leaf" },
+  cards: { label: "Cards", icon: "card-outline", iconActive: "card" },
   profile: { label: "Profile", icon: "person-outline", iconActive: "person" },
 };
-interface TabBarRoute {
-  key: string;
-  name: string;
-}
 
-interface TabBarProps {
-  state: { index: number; routes: TabBarRoute[] };
-  navigation: { navigate: (name: string) => void };
-}
+const ORDER = ["home", "save", "cards", "profile"];
 
-const Send = ()=>{
-  return(
-    <TouchableOpacity style={styles.send} onPress={() => router.navigate('/(tabs)/send-package' as const)}>
-      <MaterialIcons name="send" size={30} color={"#FFF"} style={{left:4}}/>
-    </TouchableOpacity>
-  )
-}
-
-function CustomTabBar({ state, navigation }: TabBarProps) {
+function CustomTabBar({ state, navigation }: any) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const routes = state.routes;
-  const left = routes.slice(0,2);
-  const right = routes.slice(2);
 
-  function renderTab(route: TabBarRoute) {
+  const routes = ORDER.map((name) => state.routes.find((r: any) => r.name === name)).filter(Boolean);
+  const focusedName = state.routes[state.index]?.name;
+
+  const renderTab = (route: any) => {
     const meta = TAB_META[route.name];
-    if (!meta) return null;
-    const isFocused = state.routes[state.index]?.key === route.key;
-
+    const focused = focusedName === route.name;
+    const color = focused ? theme.accent : theme.textSecondary;
     return (
       <Pressable
         key={route.key}
@@ -51,19 +35,45 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
         style={styles.tab}
         accessibilityRole="button"
         accessibilityLabel={meta.label}
-        accessibilityState={{ selected: isFocused }}
+        accessibilityState={{ selected: focused }}
       >
-        <Ionicons name={isFocused ? meta.iconActive : meta.icon} size={24} color={isFocused ? Colors.primary : theme.textSecondary} />
-        <Text style={[styles.tabLabel, { color: isFocused ? Colors.primary : theme.textSecondary }]}>{meta.label}</Text>
+        <Ionicons name={focused ? meta.iconActive : meta.icon} size={22} color={color} />
+        <Text style={[styles.label, { color, fontWeight: focused ? "700" : "500" }]}>{meta.label}</Text>
+        <View style={[styles.dot, { backgroundColor: focused ? theme.accent : "transparent" }]} />
       </Pressable>
     );
-  }
+  };
 
   return (
-    <View style={[{backgroundColor: theme.background, borderTopColor: theme.line,}, styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-      {left.map(renderTab)}
-      <Send/>
-      {right.map(renderTab)}
+    <View
+      pointerEvents="box-none"
+      style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}
+    >
+      <View
+        style={[
+          styles.bar,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.line,
+            shadowColor: "#000",
+          },
+        ]}
+      >
+        {routes.slice(0, 2).map(renderTab)}
+        <View style={styles.fabSlot}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => go("/transfer")}
+            accessibilityRole="button"
+            accessibilityLabel="Send money"
+            style={[styles.fab, { borderColor: theme.background }]}
+          >
+            <Ionicons name="paper-plane" size={24} color={Colors.palette.forest950} style={{ marginLeft: -2, marginTop: 1 }} />
+          </TouchableOpacity>
+          <Text style={[styles.label, { color: theme.textSecondary, marginTop: 2 }]}>Send</Text>
+        </View>
+        {routes.slice(2).map(renderTab)}
+      </View>
     </View>
   );
 }
@@ -72,54 +82,49 @@ export default function TabsLayout() {
   return (
     <Tabs tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="home" options={{ title: "Home" }} />
-      <Tabs.Screen name="wallet" options={{ title: "Wallet" }} />
-      <Tabs.Screen name="send-package" options={{ href: null, title: "Send package" }} />
-      <Tabs.Screen name="notification" options={{ title: "Notification" }} />
+      <Tabs.Screen name="save" options={{ title: "Save" }} />
+      <Tabs.Screen name="cards" options={{ title: "Cards" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+  },
   bar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-evenly",
-    borderTopWidth: 1,
-    ...(Platform.OS === "android" ? { elevation: 8 } : {}),
+    height: 70,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    ...(Platform.OS === "android" ? { elevation: 12 } : {}),
   },
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    gap: 3,
-  },
-  tabLabel: {
-    // fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    color: Colors.primaryDark,
-  },
+  tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
+  label: { fontSize: 11 },
+  dot: { width: 4, height: 4, borderRadius: 2 },
+  fabSlot: { width: 76, alignItems: "center", justifyContent: "flex-end", height: 70 },
   fab: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: Colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Colors.lime,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -22,
-    shadowColor: Colors.primary,
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
+    marginTop: -34,
+    borderWidth: 5,
+    shadowColor: Colors.lime,
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    ...(Platform.OS === "android" ? { elevation: 8 } : {}),
   },
-  send:{
-    width:60,
-    height:60,
-    alignItems:'center',
-    justifyContent:'center',
-    borderRadius:200,
-    backgroundColor:Colors.primary,
-    bottom:15,
-    transform: [{ rotate: '-45deg' }], 
-  }
 });

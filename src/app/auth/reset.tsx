@@ -1,52 +1,28 @@
+import AuthShell from "@/components/auth-shell";
 import Button from "@/components/button";
-import Container from "@/components/custom-container";
 import Input from "@/components/custom-input";
-import { ThemedText } from "@/components/themed-text";
-import { Colors, Spacing } from "@/constants/theme";
-import { useAuth } from "@/context/PageContext";
-import { useTheme } from "@/hooks/use-theme";
-import { useStyles } from "@/styles/styles";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Spacing } from "@/constants/theme";
+import { goReplace } from "@/lib/nav";
 import { router } from "expo-router";
-import { TouchableOpacity, View } from "react-native";
+import { useState } from "react";
 
-export default function Forgot(){
-    const styles = useStyles();
-    const theme = useTheme();
-    const {logInForm, updateLogInField} = useAuth();
-    return(
-        <Container edges={['top', 'bottom']} style={{justifyContent:'space-between'}}>
-            <TouchableOpacity style={{paddingHorizontal:Spacing.two}} onPress={()=>router.back()}>
-                <MaterialIcons name="chevron-left" size={35}/>
-            </TouchableOpacity>
-            <View>
-                <View style={{padding:Spacing.three}}>
-                    <View style={{paddingVertical:Spacing.two}}>
-                        <ThemedText type="large">New Password</ThemedText>
-                        <ThemedText>Enter new password</ThemedText>
-                    </View>
-                    <View style={{paddingVertical:Spacing.two}}>
-                        <Input label="New Password" placeholder="yourPa$$w0rd" password />
-                        <Input label="Confirm Password" placeholder="yourPa$$w0rd" password />
-                    </View>
-                </View>
+export default function Reset() {
+  const [pw, setPw] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-                <View style={{marginTop:Spacing.five}}>
-                    <Button onPress={()=>router.push('/auth/otp')} title="Reset Password" style={{marginHorizontal:Spacing.three}}/>
-                    <View style={[styles.row, {justifyContent:'center'}]}>
-                        <ThemedText>
-                            Remember password? Back to{" "}
-                        </ThemedText>
-                        <TouchableOpacity style={{marginVertical:Spacing.two}} onPress={()=>router.push('/auth/register')}>
-                            <ThemedText style={{fontWeight:500, color:Colors.primary}}>
-                                Sign in
-                            </ThemedText>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
+  const submit = () => {
+    if (pw.length < 8) return setError("Use at least 8 characters.");
+    if (pw !== confirm) return setError("Your passwords don't match.");
+    setError(null);
+    goReplace("/auth/logIn");
+  };
 
-            <View/>
-        </Container>
-    )
+  return (
+    <AuthShell title="New password" subtitle="Choose something strong that you haven't used before." onBack={() => router.back()}>
+      <Input label="New password" icon="lock-closed-outline" placeholder="At least 8 characters" password value={pw} onChangeText={setPw} />
+      <Input label="Confirm password" icon="lock-closed-outline" placeholder="Repeat your password" password value={confirm} onChangeText={setConfirm} error={error} />
+      <Button title="Update password" onPress={submit} style={{ marginTop: Spacing.four }} />
+    </AuthShell>
+  );
 }

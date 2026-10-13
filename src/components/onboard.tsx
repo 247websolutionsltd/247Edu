@@ -1,98 +1,105 @@
-import { Radius, Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
-import { MaterialIcons } from "@expo/vector-icons";
-import { Dimensions, ImageBackground, StyleSheet, View } from "react-native";
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Slide } from "@/data/onboardData";
+import { Ionicons } from "@expo/vector-icons";
+import { Dimensions, View } from "react-native";
+import { Logo } from "./brand";
 import { ThemedText } from "./themed-text";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
+const F = Colors.palette;
 
-const OnboardingItem = ({ item }: any) => {
-  const theme = useTheme();
+const glass = {
+  backgroundColor: F.forest700,
+  borderWidth: 1,
+  borderColor: "rgba(255,255,255,0.10)",
+} as const;
+
+function Illustration({ kind }: { kind: Slide["kind"] }) {
   return (
-    <View style={[styles.container, { width, backgroundColor: theme.paper }]}>
-      <ImageBackground source={item.image} imageStyle={styles.image} style={[styles.imageCard, { height: Math.min(height * 0.53, 440) }]}>
-        <View style={styles.imageShade} />
-        <View style={styles.imageTopRow}>
-          <View style={[styles.brandMark, { backgroundColor: theme.accentSurface }]}>
-            <MaterialIcons name="local-shipping" size={18} color={theme.accentText} />
-          </View>
-          <ThemedText type="smallBold" style={styles.imageCounter}>{item.id} / 3</ThemedText>
-        </View>
-        <View style={styles.imageBottom}>
-          <View style={[styles.eyebrow, { backgroundColor: theme.accentSurface }]}>
-            <MaterialIcons name={item.icon} size={14} color={theme.accentText} />
-            <ThemedText type="smallBold" style={{ color: theme.accentText, marginLeft: Spacing.one }}>{item.eyebrow}</ThemedText>
-          </View>
-        </View>
-      </ImageBackground>
+    <View style={{ height: 300, alignItems: "center", justifyContent: "center" }}>
+      {/* glow */}
+      <View style={{ position: "absolute", width: 290, height: 290, borderRadius: 145, backgroundColor: F.forest600, opacity: 0.55 }} />
+      <View style={{ position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: F.forest500, opacity: 0.4 }} />
 
-      <View style={styles.copy}>
-        <ThemedText type="large" style={styles.title}>{item.title}</ThemedText>
-        <ThemedText style={[styles.desc, { color: theme.textSecondary }]}>{item.description}</ThemedText>
+      {kind === "save" && (
+        <>
+          <View style={[glass, { width: 270, borderRadius: Radius.lg, padding: Spacing.three + 2 }]}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: Colors.lime, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="airplane" size={20} color={F.forest950} />
+              </View>
+              <View style={{ marginLeft: Spacing.three }}>
+                <ThemedText type="smallBold" style={{ color: "#FFF" }}>Dream Vacation</ThemedText>
+                <ThemedText type="caption" style={{ color: Colors.heroMuted }}>Due Dec 2026</ThemedText>
+              </View>
+            </View>
+            <ThemedText type="title" style={{ color: "#FFF", marginTop: Spacing.three, fontSize: 28 }}>₦306,000</ThemedText>
+            <View style={{ height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.14)", marginTop: Spacing.two }}>
+              <View style={{ width: "68%", height: 8, borderRadius: 4, backgroundColor: Colors.lime }} />
+            </View>
+            <ThemedText type="caption" style={{ color: Colors.heroMuted, marginTop: Spacing.two }}>68% of ₦450,000</ThemedText>
+          </View>
+          <View style={{ position: "absolute", right: 22, bottom: 26, backgroundColor: Colors.lime, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, transform: [{ rotate: "-6deg" }] }}>
+            <ThemedText type="smallBold" style={{ color: F.forest950 }}>+14% p.a.</ThemedText>
+          </View>
+        </>
+      )}
+
+      {kind === "spend" && (
+        <>
+          <View style={{ position: "absolute", width: 250, height: 156, borderRadius: 22, backgroundColor: F.forest800, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)", transform: [{ rotate: "-9deg" }, { translateY: -22 }] }} />
+          <View style={{ width: 260, height: 164, borderRadius: 24, backgroundColor: Colors.lime, padding: Spacing.three + 2, justifyContent: "space-between", transform: [{ rotate: "4deg" }] }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Logo size={26} />
+              <Ionicons name="wifi" size={20} color={F.forest950} style={{ transform: [{ rotate: "90deg" }] }} />
+            </View>
+            <View>
+              <ThemedText style={{ color: F.forest950, fontWeight: "700", fontSize: 18, letterSpacing: 2 }}>••••  ••••  ••••  4821</ThemedText>
+              <ThemedText type="caption" style={{ color: F.forest800, marginTop: 4 }}>KEN NWAEZE</ThemedText>
+            </View>
+          </View>
+          <View style={[glass, { position: "absolute", left: 14, bottom: 22, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 }]}>
+            <Ionicons name="lock-closed" size={13} color={Colors.lime} />
+            <ThemedText type="caption" style={{ color: "#FFF", marginLeft: 6 }}>Freeze anytime</ThemedText>
+          </View>
+        </>
+      )}
+
+      {kind === "send" && (
+        <>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.lime, alignItems: "center", justifyContent: "center" }}>
+              <ThemedText style={{ color: F.forest950, fontWeight: "800", fontSize: 26 }}>KN</ThemedText>
+            </View>
+            <View style={{ width: width * 0.2, alignItems: "center" }}>
+              <View style={{ height: 0, width: "100%", borderTopWidth: 2, borderStyle: "dashed", borderColor: "rgba(255,255,255,0.4)" }} />
+              <View style={{ position: "absolute", width: 34, height: 34, borderRadius: 17, backgroundColor: F.forest600, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" }}>
+                <Ionicons name="arrow-forward" size={17} color="#FFF" />
+              </View>
+            </View>
+            <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+              <ThemedText style={{ color: F.forest800, fontWeight: "800", fontSize: 26 }}>AO</ThemedText>
+            </View>
+          </View>
+          <View style={[glass, { marginTop: 34, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderRadius: 999 }]}>
+            <Ionicons name="checkmark-circle" size={20} color={Colors.lime} />
+            <ThemedText type="smallBold" style={{ color: "#FFF", marginLeft: 8 }}>₦25,000 sent · just now</ThemedText>
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
+
+export default function OnboardingItem({ item }: { item: Slide }) {
+  return (
+    <View style={{ width, paddingHorizontal: Spacing.four, paddingTop: Spacing.six }}>
+      <Illustration kind={item.kind} />
+      <View style={{ marginTop: Spacing.four }}>
+        <ThemedText type="label" style={{ color: Colors.lime }}>{item.eyebrow}</ThemedText>
+        <ThemedText type="title" style={{ color: "#FFF", marginTop: Spacing.two }}>{item.title}</ThemedText>
+        <ThemedText style={{ color: Colors.heroMuted, marginTop: Spacing.three, lineHeight: 24 }}>{item.description}</ThemedText>
       </View>
     </View>
   );
-};
-
-export default OnboardingItem;
-
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.five,
-  },
-  imageCard: {
-    overflow: "hidden",
-    borderRadius: Radius.lg,
-    justifyContent: "space-between",
-  },
-  image: {
-    borderRadius: Radius.lg,
-  },
-  imageShade: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(10, 20, 14, 0.2)",
-  },
-  imageTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: Spacing.three,
-  },
-  brandMark: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  imageCounter: {
-    color: "#FFFFFF",
-    backgroundColor: "rgba(10, 20, 14, 0.45)",
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-    borderRadius: Radius.pill,
-  },
-  imageBottom: {
-    padding: Spacing.three,
-  },
-  eyebrow: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-    borderRadius: Radius.pill,
-  },
-  copy: {
-    paddingHorizontal: Spacing.one,
-    paddingTop: Spacing.four,
-  },
-  desc: {
-    marginTop: Spacing.two,
-    lineHeight: 23,
-  },
-  title: {
-    lineHeight: 34,
-  }
-});
+}

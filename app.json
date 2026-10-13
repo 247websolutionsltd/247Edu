@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "247Logistics",
-    "slug": "247Logistics",
+    "name": "247Fintech",
+    "slug": "247LFintech",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "247logistics",
+    "scheme": "fintech247",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -13,10 +13,10 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#EDF5F0",
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/icon.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.logistics247"
+      "package": "com.fintech247"
     },
     "web": {
       "output": "static",
@@ -24,6 +24,7 @@
     },
     "plugins": [
       "expo-router",
+      // "@react-native-google-signin/google-signin",
       [
         "expo-splash-screen",
         {
@@ -31,7 +32,8 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
