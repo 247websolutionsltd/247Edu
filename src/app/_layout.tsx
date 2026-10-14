@@ -1,10 +1,26 @@
 import { Colors } from '@/constants/theme';
-import { AppThemeProvider, AuthProvider, useAppTheme } from '@/context/PageContext';
+import { AppThemeProvider, AuthProvider, useAppTheme, useAuth } from '@/context/PageContext';
 import { WalletProvider } from '@/context/WalletContext';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { goReplace } from '@/lib/nav';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useSegments } from 'expo-router';
+import { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 
+/** Signed-out users (or an expired session) can only see the splash, onboarding and auth screens. */
+function useAuthGuard() {
+  const { authReady, uid } = useAuth();
+  const segments = useSegments();
+  const root = segments[0] as string | undefined;
+
+  useEffect(() => {
+    if (!authReady || uid) return;
+    const isPublic = !root || root === 'onboard' || root === 'auth';
+    if (!isPublic) goReplace('/auth/logIn');
+  }, [authReady, uid, root]);
+}
+
 function Shell() {
+  useAuthGuard();
   const { themeMode } = useAppTheme();
   const c = Colors[themeMode];
   const base = themeMode === 'dark' ? DarkTheme : DefaultTheme;

@@ -23,6 +23,7 @@ export default function GoalDetail() {
   const [mode, setMode] = useState<"add" | "withdraw">("add");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   if (!goal) {
     return (
@@ -34,9 +35,11 @@ export default function GoalDetail() {
   }
 
   const pct = goal.saved / goal.target;
-  const submit = () => {
+  const submit = async () => {
     const amt = parseAmount(amount);
-    const res = mode === "add" ? fundGoal(goal.id, amt) : withdrawGoal(goal.id, amt);
+    setBusy(true);
+    const res = mode === "add" ? await fundGoal(goal.id, amt) : await withdrawGoal(goal.id, amt);
+    setBusy(false);
     if (!res.ok) return setError(res.error);
     setError(null);
     setAmount("");
@@ -92,6 +95,7 @@ export default function GoalDetail() {
         <Button
           title={mode === "add" ? "Add to goal" : "Withdraw to wallet"}
           onPress={submit}
+          loading={busy}
           disabled={mode === "withdraw" && goal.locked}
           style={{ marginTop: Spacing.three }}
         />

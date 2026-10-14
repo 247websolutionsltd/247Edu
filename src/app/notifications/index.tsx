@@ -6,6 +6,7 @@ import { Chip } from "@/components/ui";
 import { Spacing } from "@/constants/theme";
 import { useWallet } from "@/context/WalletContext";
 import { useTheme } from "@/hooks/use-theme";
+import { timeAgo } from "@/lib/format";
 import { go } from "@/lib/nav";
 import { useState } from "react";
 import { ScrollView, TouchableOpacity, View } from "react-native";
@@ -44,7 +45,7 @@ export default function Notifications() {
             icon={n.icon}
             title={n.title}
             desc={n.desc}
-            time={n.time}
+            time={timeAgo(n.ts)}
             unread={n.unread}
             onPress={() => {
               markNotificationRead(n.id);

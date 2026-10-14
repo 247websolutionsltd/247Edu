@@ -13,7 +13,8 @@ import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { auth } from "../config/firebase";
-import { createUserProfile } from "@/services/userProfile";
+import { goReplace } from "@/lib/nav";
+import { ensureUserAccount } from "@/services/users";
 import { ThemedText } from "./themed-text";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -49,7 +50,8 @@ export default function GoogleSignInButton() {
           credential
         );
 
-        await createUserProfile(userCredential.user);
+        await ensureUserAccount(userCredential.user);
+        goReplace("/(tabs)/home");
       } catch (error) {
         console.error("Google Sign-In Error:", error);
 

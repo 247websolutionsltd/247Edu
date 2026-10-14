@@ -13,7 +13,7 @@ import { TouchableOpacity, View } from "react-native";
 
 export default function Register() {
   const theme = useTheme();
-  const { registerForm: f, updateRegisterField, handleSignup } = useAuth();
+  const { registerForm: f, updateRegisterField, handleSignup, loading } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   const submit = async() => {
@@ -49,7 +49,7 @@ export default function Register() {
         .
       </ThemedText>
 
-      <Button title="Create account" onPress={submit} style={{ marginTop: Spacing.four }} />
+      <Button title="Create account" onPress={submit} loading={loading} style={{ marginTop: Spacing.four }} />
 
       <View style={{ flexDirection: "row", justifyContent: "center", marginTop: Spacing.four }}>
         <ThemedText type="small" themeColor="textSecondary">Already have an account? </ThemedText>

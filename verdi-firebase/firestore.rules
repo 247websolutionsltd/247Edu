@@ -1,0 +1,75 @@
+rules_version = '2';
+
+// Verdi data model
+//   users/{uid}                    profile + wallet balance
+//   users/{uid}/transactions/{id}  immutable ledger entries
+//   users/{uid}/goals/{id}         savings goals
+//   users/{uid}/beneficiaries/{id} saved recipients
+//   users/{uid}/notifications/{id} in-app notifications
+//
+// IMPORTANT: these rules keep every customer inside their own data and block obviously
+// invalid writes, but a client that is allowed to write its own balance can still lie
+// about it. Before handling real money, move money-moving actions (transfer, top-up,
+// bill payment, savings) into Cloud Functions and make `balance` read-only here.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function isNum(v) { return v is number && v == v; }          // v == v rejects NaN
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+
+      // a new account always starts with an empty wallet
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.balance == 0;
+
+      allow update: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && isNum(request.resource.data.balance)
+        && request.resource.data.balance >= 0;
+
+      allow delete: if false;
+
+      // ledger: append-only
+      match /transactions/{id} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && isNum(request.resource.data.amount) && request.resource.data.amount > 0
+          && request.resource.data.kind in ['credit', 'debit']
+          && request.resource.data.status in ['success', 'pending', 'failed'];
+        allow update, delete: if false;
+      }
+
+      match /goals/{id} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && isNum(request.resource.data.target) && request.resource.data.target > 0
+          && isNum(request.resource.data.saved) && request.resource.data.saved >= 0;
+        allow update: if isOwner(uid)
+          && isNum(request.resource.data.saved) && request.resource.data.saved >= 0
+          && request.resource.data.target == resource.data.target
+          && request.resource.data.locked == resource.data.locked;
+        allow delete: if false;
+      }
+
+      match /beneficiaries/{id} {
+        allow read, create, delete: if isOwner(uid);
+        allow update: if false;
+      }
+
+      match /notifications/{id} {
+        allow read, create: if isOwner(uid);
+        // the only edit allowed is marking one as read
+        allow update: if isOwner(uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unread']);
+        allow delete: if false;
+      }
+    }
+
+    // everything else is closed
+    match /{document=**} { allow read, write: if false; }
+  }
+}

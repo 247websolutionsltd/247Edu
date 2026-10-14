@@ -5,6 +5,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Card, IconBadge } from "@/components/ui";
 import { Spacing } from "@/constants/theme";
 import { useWallet } from "@/context/WalletContext";
+import { timeAgo } from "@/lib/format";
 import { go } from "@/lib/nav";
 import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
@@ -22,7 +23,7 @@ export default function NotificationDetail() {
         <View style={{ alignItems: "center", marginTop: Spacing.four }}>
           <IconBadge icon={n.icon} size={76} round />
           <ThemedText type="large" style={{ textAlign: "center", marginTop: Spacing.four }}>{n.title}</ThemedText>
-          <ThemedText type="caption" themeColor="textSecondary" style={{ marginTop: Spacing.one }}>{n.time} · {n.type}</ThemedText>
+          <ThemedText type="caption" themeColor="textSecondary" style={{ marginTop: Spacing.one }}>{timeAgo(n.ts)} · {n.type}</ThemedText>
         </View>
         <Card alt style={{ marginTop: Spacing.four }}>
           <ThemedText themeColor="textSecondary" style={{ lineHeight: 24 }}>{n.detail}</ThemedText>

@@ -4,7 +4,6 @@ import BigAmount from "@/components/money";
 import { ThemedText } from "@/components/themed-text";
 import { Card, HeroDecor, IconBadge, ProgressBar, SectionHeader, Toggle } from "@/components/ui";
 import { Colors, Radius, Spacing, TabBarSpace } from "@/constants/theme";
-import { useAuth } from "@/context/PageContext";
 import { useWallet } from "@/context/WalletContext";
 import { useTheme } from "@/hooks/use-theme";
 import { compactMoney, formatMoney } from "@/lib/format";
@@ -19,9 +18,7 @@ const plans = [
 
 export default function Save() {
   const theme = useTheme();
-  const { user } = useAuth();
   const { goals, savingsTotal, interestEarned, roundUps, setRoundUps } = useWallet();
-  const savedTotal = Number(user?.savings ?? 0);
 
   return (
     <Container edges={["top"]} style={{ paddingBottom: TabBarSpace }}>
@@ -35,7 +32,7 @@ export default function Save() {
           <HeroDecor />
           <ThemedText type="label" style={{ color: Colors.heroMuted }}>Total saved</ThemedText>
           <View style={{ marginTop: Spacing.two }}>
-            <BigAmount value={savedTotal} size={38} color="#FFF" mutedColor={Colors.heroMuted} decimals={false} />
+            <BigAmount value={savingsTotal} size={38} color="#FFF" mutedColor={Colors.heroMuted} decimals={false} />
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.two, marginTop: Spacing.three }}>
             <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: Colors.lime, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 }}>
@@ -43,7 +40,7 @@ export default function Save() {
               <ThemedText type="caption" style={{ color: Colors.palette.forest950, marginLeft: 6, fontWeight: "700" }}>Earning up to 14% p.a.</ThemedText>
             </View>
             <View style={{ backgroundColor: Colors.heroChip, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 }}>
-              <ThemedText type="caption" style={{ color: "#FFF", fontWeight: "600" }}>≈ {formatMoney((savedTotal * (0.14 / 12)), { decimals: false })} interest / month</ThemedText>
+              <ThemedText type="caption" style={{ color: "#FFF", fontWeight: "600" }}>≈ {formatMoney((savingsTotal * (0.14 / 12)), { decimals: false })} interest / month</ThemedText>
             </View>
           </View>
         </View>
@@ -82,7 +79,7 @@ export default function Save() {
 
       <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.five }}>
         <SectionHeader title="Your goals" />
-        {user?.savingsGoal?.length === 0 && (
+        {goals.length === 0 && (
           <Card alt>
             <ThemedText type="small" themeColor="textSecondary">No goals yet. Tap + to create your first one.</ThemedText>
           </Card>

@@ -30,6 +30,7 @@ export default function Bills() {
   const [target, setTarget] = useState("");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const choose = (b: Bill) => {
     setBill(b);
@@ -37,9 +38,12 @@ export default function Bills() {
     setError(null);
   };
 
-  const pay = () => {
+  const pay = async () => {
     if (target.replace(/\s/g, "").length < 10) return setError(`Enter a valid ${bill.field.toLowerCase()}.`);
-    const res = payBill({ category: bill.category, provider: `${provider} ${bill.label}`, target: `${bill.label} · ${target}`, amount: parseAmount(amount) });
+    setError(null);
+    setBusy(true);
+    const res = await payBill({ category: bill.category, provider: `${provider} ${bill.label}`, target: `${bill.label} · ${target}`, amount: parseAmount(amount) });
+    setBusy(false);
     if (!res.ok) return setError(res.error);
     goWith("/transfer/success", { kind: "bill", txId: res.id });
   };
@@ -79,7 +83,7 @@ export default function Bills() {
         <ThemedText type="caption" themeColor="textSecondary" style={{ marginTop: Spacing.three, textAlign: "center" }}>
           Paying from wallet · {formatMoney(balance, { decimals: false })} available
         </ThemedText>
-        <Button title="Pay now" onPress={pay} style={{ marginTop: Spacing.three }} />
+        <Button title="Pay now" onPress={pay} loading={busy} style={{ marginTop: Spacing.three }} />
       </View>
     </Container>
   );

@@ -34,10 +34,14 @@ export default function NewGoal() {
   const [months, setMonths] = useState(6);
   const [locked, setLocked] = useState(lockedParam === "1");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const rate = locked ? 14 : 10;
 
-  const submit = () => {
-    const res = createGoal({ name, icon, target: parseAmount(target), initial: parseAmount(initial), dueLabel: dueLabel(months), locked, rate });
+  const submit = async () => {
+    setError(null);
+    setBusy(true);
+    const res = await createGoal({ name, icon, target: parseAmount(target), initial: parseAmount(initial), dueLabel: dueLabel(months), locked, rate });
+    setBusy(false);
     if (!res.ok) return setError(res.error);
     goReplace(`/save/${res.id}`);
   };
@@ -78,7 +82,7 @@ export default function NewGoal() {
         </Card>
 
         {error ? <ThemedText type="small" style={{ color: theme.danger, marginTop: Spacing.three }}>{error}</ThemedText> : null}
-        <Button title="Create goal" onPress={submit} style={{ marginTop: Spacing.four }} />
+        <Button title="Create goal" onPress={submit} loading={busy} style={{ marginTop: Spacing.four }} />
       </View>
     </Container>
   );

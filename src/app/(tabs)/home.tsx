@@ -14,7 +14,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { compactMoney, formatMoney, greeting } from "@/lib/format";
 import { go } from "@/lib/nav";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { ScrollView, Share, TouchableOpacity, View } from "react-native";
 
 const DAY = 86_400_000;
@@ -29,11 +29,8 @@ const quickActions: { label: string; icon: IconName; route: string }[] = [
 
 export default function Home() {
   const theme = useTheme();
-  const { owner, user, setUser } = useAuth();
-  const { transactions, goals, balanceHidden, toggleBalanceHidden, notifications } = useWallet();
-  const walletBalance = Number(user?.balance ?? 0);
-  const savingsTotal = Number(user?.savings ?? 0);
-  const weekSpent = Number(user?.weekSpent ?? 0);
+  const { owner } = useAuth();
+  const { balance: walletBalance, savingsTotal, transactions, goals, balanceHidden, toggleBalanceHidden, notifications } = useWallet();
   const firstName = owner.name.split(" ")[0];
   const unread = notifications.some((n) => n.unread);
   // spending = money out, excluding transfers to savings
@@ -54,19 +51,8 @@ export default function Home() {
   const maxDay = Math.max(...week.map((d) => d.total), 1);
 
   const shareAccount = () =>
-    Share.share({ message: `${owner.name}\n${Brand.bankName}\n${Brand.accountNumber}` });
+    Share.share({ message: `${owner.name}\n${Brand.bankName}\n${owner.accountNumber}` });
 
-  useEffect(()=>{
-    // const load = async()=>{
-    //   const userID = await AsyncStorage.getItem("userID");
-    //   const userData = await getUserProfile(userID || "");
-    //   console.log("User profile:", userData);
-    //   setUser(userData);
-    //   console.log(user);
-    // }
-    // load();
-    console.log("User profile:", user);
-  })
 
   return (
     <Container edges={["top"]} style={{ paddingBottom: TabBarSpace }}>
@@ -103,7 +89,7 @@ export default function Home() {
             style={{ flexDirection: "row", alignItems: "center", alignSelf: "flex-start", marginTop: Spacing.three, backgroundColor: Colors.heroChip, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 }}
           >
             <ThemedText type="caption" style={{ color: "#FFF", fontWeight: "600" }}>
-              {Brand.bankName} · {Brand.accountNumber}
+              {Brand.bankName} · {owner.accountNumber}
             </ThemedText>
             <Ionicons name="share-outline" size={14} color="#FFF" style={{ marginLeft: 8 }} />
           </TouchableOpacity>
@@ -121,7 +107,7 @@ export default function Home() {
                 <Ionicons name="trending-down" size={14} color={Colors.lime} />
                 <ThemedText type="caption" style={{ color: Colors.heroMuted, marginLeft: 6 }}>Spent this week</ThemedText>
               </View>
-              <ThemedText type="bold" style={{ color: "#FFF", marginTop: 4 }}>{balanceHidden ? "••••" : compactMoney(weekSpent)}</ThemedText>
+              <ThemedText type="bold" style={{ color: "#FFF", marginTop: 4 }}>{balanceHidden ? "••••" : compactMoney(weekTotal)}</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -178,7 +164,7 @@ export default function Home() {
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
             <View>
               <ThemedText type="caption" themeColor="textSecondary">Total spent</ThemedText>
-              <ThemedText type="subtitle" style={{ marginTop: 2 }}>{balanceHidden ? "₦••••••" : formatMoney(weekSpent, { decimals: false })}</ThemedText>
+              <ThemedText type="subtitle" style={{ marginTop: 2 }}>{balanceHidden ? "₦••••••" : formatMoney(weekTotal, { decimals: false })}</ThemedText>
             </View>
             <TouchableOpacity onPress={() => go("/(tabs)/cards")} hitSlop={10}>
               <ThemedText type="smallBold" style={{ color: theme.accent }}>Breakdown</ThemedText>
@@ -208,6 +194,11 @@ export default function Home() {
       <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.five }}>
         <SectionHeader title="Recent activity" action="See all" onAction={() => go("/activity")} />
         <Card style={{ paddingVertical: Spacing.one }}>
+          {transactions.length === 0 && (
+            <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: "center", paddingVertical: Spacing.four }}>
+              No transactions yet. Add money to get started.
+            </ThemedText>
+          )}
           {transactions.slice(0, 5).map((t, i, arr) => (
             <TransactionRow key={t.id} tx={t} hidden={balanceHidden} last={i === arr.length - 1} onPress={() => go(`/transaction/${t.id}`)} />
           ))}

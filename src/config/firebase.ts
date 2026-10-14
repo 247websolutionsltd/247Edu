@@ -1,15 +1,11 @@
-// Import the functions you need from the SDKs you need
-// import { getAnalytics } from "firebase/analytics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { initializeApp } from "firebase/app";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import * as FirebaseAuth from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore";
 import { Platform } from "react-native";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Values come from your .env (see .env.example). Expo inlines EXPO_PUBLIC_* at build time,
+// so restart with `npx expo start --clear` after changing them.
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -20,18 +16,39 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-// const analytics = getAnalytics(app);
-const firebaseAuth = FirebaseAuth as typeof FirebaseAuth & {
+const missing = (["apiKey", "authDomain", "projectId", "appId"] as const).filter((k) => !firebaseConfig[k]);
+if (missing.length) {
+  console.error(
+    `[firebase] Missing EXPO_PUBLIC_FIREBASE_* values for: ${missing.join(", ")}. ` +
+      "Check your .env and restart Expo with --clear.",
+  );
+}
+
+// Fast Refresh re-runs this module; reuse the existing app instead of crashing.
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+const rnAuth = FirebaseAuth as typeof FirebaseAuth & {
   getReactNativePersistence: (storage: typeof AsyncStorage) => FirebaseAuth.Persistence;
 };
 
-export const auth =
-  Platform.OS === "web"
-    ? FirebaseAuth.getAuth(app)
-    : firebaseAuth.initializeAuth(app, {
-        persistence: firebaseAuth.getReactNativePersistence(AsyncStorage),
-      });
+function createAuth() {
+  if (Platform.OS === "web") return FirebaseAuth.getAuth(app);
+  try {
+    return rnAuth.initializeAuth(app, { persistence: rnAuth.getReactNativePersistence(AsyncStorage) });
+  } catch {
+    // already initialised (Fast Refresh)
+    return FirebaseAuth.getAuth(app);
+  }
+}
 
-export const db = getFirestore(app);
+function createDb() {
+  try {
+    // Auto-detect long polling avoids hanging connections on some mobile networks / proxies.
+    return initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  } catch {
+    return getFirestore(app);
+  }
+}
+
+export const auth = createAuth();
+export const db = createDb();

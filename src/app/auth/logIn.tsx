@@ -14,7 +14,7 @@ import { TouchableOpacity, View } from "react-native";
 
 export default function LogIn() {
   const theme = useTheme();
-  const { logInForm, updateLogInField, handleLogin } = useAuth();
+  const { logInForm, updateLogInField, handleLogin, loading } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
@@ -51,7 +51,7 @@ export default function LogIn() {
       </TouchableOpacity>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.three, marginTop: Spacing.two }}>
-        <Button title="Sign in" onPress={submit} style={{ flex: 1 }} />
+        <Button title="Sign in" onPress={submit} loading={loading} style={{ flex: 1 }} />
         <TouchableOpacity
           onPress={submit}
           accessibilityLabel="Sign in with biometrics"

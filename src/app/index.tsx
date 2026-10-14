@@ -1,52 +1,49 @@
 import { Logo } from '@/components/brand';
 import { ThemedText } from '@/components/themed-text';
 import { HeroDecor } from '@/components/ui';
-import { auth } from '@/config/firebase';
 import { Brand } from '@/constants/brand';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/PageContext';
 import { goReplace } from '@/lib/nav';
-import { getUserProfile } from '@/services/users';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { onAuthStateChanged } from 'firebase/auth';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StatusBar, View } from 'react-native';
 
-/** Branded splash. Decides between onboarding (first launch) and sign-in. */
+const MIN_SPLASH_MS = 900;
+const MAX_WAIT_MS = 5000; // don't hang on the splash if the network is down
+
+/** Branded splash. Routes to home (signed in), sign-in (returning) or onboarding (first launch). */
 export default function Splash() {
-  const {setUser} = useAuth();
+  const { authReady, uid, profileReady } = useAuth();
+  const [minElapsed, setMinElapsed] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  const navigated = useRef(false);
+
   useEffect(() => {
-    let mounted = true;
-    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
-    let unsubscribe = () => {};
-    const start = Date.now();
-
-    unsubscribe = onAuthStateChanged(auth, async (user) => {
-      unsubscribe();
-      let target = user ? '/(tabs)/home' : '/onboard';
-      if (!user) {
-        try {
-          const done = await AsyncStorage.getItem('onboarded');
-          if (done === 'true') target = '/auth/logIn';
-        } catch (e) {
-          console.error('Unable to read onboarding status', e);
-        }
-      }else{
-        const userData = await getUserProfile(user?.uid || '');
-        console.log("User profile:", userData);
-        AsyncStorage.setItem("userID", JSON.stringify(userData?.uid));
-        setUser(userData);
-      }
-      const wait = Math.max(0, 900 - (Date.now() - start));
-      redirectTimer = setTimeout(() => mounted && goReplace(target), wait);
-    });
-
+    const a = setTimeout(() => setMinElapsed(true), MIN_SPLASH_MS);
+    const b = setTimeout(() => setTimedOut(true), MAX_WAIT_MS);
     return () => {
-      mounted = false;
-      unsubscribe();
-      if (redirectTimer) clearTimeout(redirectTimer);
+      clearTimeout(a);
+      clearTimeout(b);
     };
   }, []);
+
+  useEffect(() => {
+    if (navigated.current || !authReady || !minElapsed) return;
+    if (uid && !profileReady && !timedOut) return; // let the profile load so Home isn't empty
+    navigated.current = true;
+
+    (async () => {
+      if (uid) return goReplace('/(tabs)/home');
+      let target = '/onboard';
+      try {
+        if ((await AsyncStorage.getItem('onboarded')) === 'true') target = '/auth/logIn';
+      } catch (e) {
+        console.error('Unable to read onboarding status', e);
+      }
+      goReplace(target);
+    })();
+  }, [authReady, uid, profileReady, minElapsed, timedOut]);
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.hero, alignItems: 'center', justifyContent: 'center' }}>

@@ -1,11 +1,9 @@
 import { auth } from "@/config/firebase";
 import { goReplace } from "@/lib/nav";
-import { loginUser, registerUser } from "@/services/auth";
-import { createUserProfile } from "@/services/userProfile";
-import { getUserProfile, updateUserProfile, UserProfile } from "@/services/users";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { onAuthStateChanged, updateProfile, type User } from "firebase/auth";
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { authErrorMessage, loginUser, registerUser } from "@/services/auth";
+import { ensureUserAccount, subscribeUserProfile, updateUserProfile, UserProfile } from "@/services/users";
+import { onAuthStateChanged, updateProfile } from "firebase/auth";
+import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 
 /* -------------------------------------------------------------------------- */
@@ -46,17 +44,11 @@ export function useAppTheme() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Auth / profile                                                              */
+/* Auth / profile (Firebase Auth + live users/{uid} document)                  */
 /* -------------------------------------------------------------------------- */
 
 type LogInForm = { email: string; password: string };
-type RegisterForm = {
-  email: string;
-  password: string;
-  confirm: string;
-  name: string;
-  phone: string;
-};
+type RegisterForm = { email: string; password: string; confirm: string; name: string; phone: string };
 
 export type Owner = {
   name: string;
@@ -64,158 +56,156 @@ export type Owner = {
   phone: string;
   email: string;
   referralCode: string;
+  accountNumber: string;
 };
 
 type AuthContextType = {
+  /** true while a sign-in / sign-up request is in flight */
   loading: boolean;
+  /** Firebase has restored (or not) the previous session */
+  authReady: boolean;
+  /** the first profile snapshot has arrived (or failed) for the signed-in user */
+  profileReady: boolean;
+  uid: string | null;
+  user: UserProfile | null;
+  owner: Owner;
   logInForm: LogInForm;
   updateLogInField: (field: keyof LogInForm, value: string) => void;
   registerForm: RegisterForm;
   updateRegisterField: (field: keyof RegisterForm, value: string) => void;
-  owner: Owner;
-  updateOwner: (patch: Pick<Partial<Owner>, "name" | "phone">) => Promise<void>;
+  updateOwner: (patch: { name?: string; phone?: string }) => Promise<void>;
   handleSignup: () => Promise<void>;
   handleLogin: () => Promise<void>;
-  user: UserProfile | null;
-  setUser: (user: UserProfile | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const initialOwner: Owner = {
-  name: "",
-  tier: "Tier 2 · Verified",
-  phone: "",
-  email: "",
-  referralCode: "KEN2400",
-};
-
-async function loadOwnerProfile(user: User): Promise<Owner> {
-  let profile = await getUserProfile(user.uid);
-  if (!profile) {
-    await createUserProfile(user);
-    profile = {
-      uid: user.uid,
-      email: user.email ?? undefined,
-      displayName: user.displayName ?? undefined,
-      photoURL: user.photoURL ?? undefined,
-    };
-  }
-
-  return {
-    ...initialOwner,
-    name: profile.displayName ?? user.displayName ?? "",
-    email: profile.email ?? user.email ?? "",
-    phone: profile.phone ?? "",
-  };
-}
+const emptyLogin: LogInForm = { email: "", password: "" };
+const emptyRegister: RegisterForm = { email: "", password: "", confirm: "", name: "", phone: "" };
+const emptyOwner: Owner = { name: "", tier: "", phone: "", email: "", referralCode: "", accountNumber: "" };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [loading] = useState(false);
-  const [logInForm, setLogInForm] = useState<LogInForm>({ email: "", password: "" });
-  const [registerForm, setRegisterForm] = useState<RegisterForm>({
-    email: "",
-    password: "",
-    confirm: "",
-    name: "",
-    phone: "",
-  });
-  const [owner, setOwner] = useState<Owner>(initialOwner);
+  const [loading, setLoading] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const [profileReady, setProfileReady] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [logInForm, setLogInForm] = useState(emptyLogin);
+  const [registerForm, setRegisterForm] = useState(emptyRegister);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        setOwner(initialOwner);
+    let unsubProfile: (() => void) | undefined;
+
+    const unsubAuth = onAuthStateChanged(auth, (fbUser) => {
+      unsubProfile?.();
+      unsubProfile = undefined;
+      setUser(null);
+
+      if (!fbUser) {
+        setUid(null);
+        setProfileReady(false);
+        setAuthReady(true);
         return;
       }
 
-      void loadOwnerProfile(user)
-        .then((profile) => {
-          if (auth.currentUser?.uid === user.uid) {
-            setOwner(profile);
-          }
-        })
-        .catch((error: unknown) => {
-          console.error("Unable to load the Firebase user profile", error);
-          Alert.alert("Profile unavailable", "Your account is signed in, but we couldn't load your profile. Please try again.");
-        });
-      });
+      setUid(fbUser.uid);
+      setProfileReady(false);
+      setAuthReady(true);
 
-    return unsubscribe;
+      // Create / repair the account document (no-op when it's already fine).
+      ensureUserAccount(fbUser).catch((e) => console.error("[auth] ensureUserAccount failed", e));
+
+      // Live profile: balance, name, phone, card state... update everywhere instantly.
+      unsubProfile = subscribeUserProfile(
+        fbUser.uid,
+        (profile) => {
+          setUser(profile);
+          // a missing doc means ensureUserAccount is still creating it; wait for the next snapshot
+          if (profile) setProfileReady(true);
+        },
+        (error) => {
+          if (!auth.currentUser) return; // signed out; listener is being torn down
+          console.error("[auth] profile subscription failed", error);
+          setProfileReady(true); // don't block the app on a failed read
+        },
+      );
+    });
+
+    return () => {
+      unsubProfile?.();
+      unsubAuth();
+    };
   }, []);
 
+  const owner = useMemo<Owner>(() => {
+    if (!uid) return emptyOwner;
+    return {
+      name: user?.displayName ?? auth.currentUser?.displayName ?? "",
+      email: user?.email ?? auth.currentUser?.email ?? "",
+      phone: user?.phone ?? "",
+      tier: user?.tier ?? "",
+      referralCode: user?.referralCode ?? "",
+      accountNumber: user?.accountNumber ?? "",
+    };
+  }, [uid, user]);
+
   const handleSignup = async () => {
+    if (loading) return;
+    setLoading(true);
     try {
-      const user = await registerUser(registerForm.email, registerForm.password);
+      const fbUser = await registerUser(registerForm.email, registerForm.password);
       const displayName = registerForm.name.trim();
-      await updateProfile(user, { displayName });
-      await createUserProfile(user, {
-        displayName,
-        phone: registerForm.phone.trim(),
-        balance: "0",
-        savings: "0",
-        weekSpent: "0",
-        savingsGoal: [],
-      });
-      setOwner({
-        ...initialOwner,
-        name: displayName,
-        email: user.email ?? "",
-        phone: registerForm.phone.trim(),
-      });
-      const userData = await getUserProfile(user.uid);
-      console.log("Registered user:", userData);
-      setUser(userData);
+      await updateProfile(fbUser, { displayName });
+      await ensureUserAccount(fbUser, { displayName, phone: registerForm.phone.trim() });
+      setRegisterForm(emptyRegister); // don't keep passwords in memory
       goReplace("/(tabs)/home");
     } catch (error: unknown) {
-      Alert.alert(
-        "Signup failed",
-        error instanceof Error ? error.message : "Unable to create your account."
-      );
+      Alert.alert("Signup failed", authErrorMessage(error));
+    } finally {
+      setLoading(false);
     }
   };
+
   const handleLogin = async () => {
+    if (loading) return;
+    setLoading(true);
     try {
-      const user = await loginUser(logInForm.email, logInForm.password);
-      const userData = await getUserProfile(user.uid);
-      console.log("User profile:", userData);
-      AsyncStorage.setItem("userID", JSON.stringify(userData?.uid));
-      setUser(userData);
+      await loginUser(logInForm.email, logInForm.password);
+      setLogInForm(emptyLogin);
       goReplace("/(tabs)/home");
     } catch (error: unknown) {
-      Alert.alert(
-        "Login failed",
-        error instanceof Error ? error.message : "Unable to sign in."
-      );
+      Alert.alert("Login failed", authErrorMessage(error));
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const updateOwner: AuthContextType["updateOwner"] = async (patch) => {
+    const fbUser = auth.currentUser;
+    if (!fbUser) throw new Error("You must be signed in to update your profile.");
+    const displayName = patch.name?.trim() ?? owner.name;
+    const phone = patch.phone?.trim() ?? owner.phone;
+    await updateProfile(fbUser, { displayName });
+    await updateUserProfile(fbUser.uid, { displayName, phone });
+    // the live profile listener refreshes `owner`
   };
 
   return (
     <AuthContext.Provider
       value={{
         loading,
+        authReady,
+        profileReady,
+        uid,
+        user,
+        owner,
         logInForm,
         updateLogInField: (f, v) => setLogInForm((p) => ({ ...p, [f]: v })),
         registerForm,
         updateRegisterField: (f, v) => setRegisterForm((p) => ({ ...p, [f]: v })),
-        owner,
-        updateOwner: async (patch) => {
-          const user = auth.currentUser;
-          if (!user) {
-            throw new Error("You must be signed in to update your profile.");
-          }
-
-          const displayName = patch.name?.trim() ?? owner.name;
-          const phone = patch.phone?.trim() ?? owner.phone;
-          await updateProfile(user, { displayName });
-          await updateUserProfile(user.uid, { displayName, phone });
-          setOwner((current) => ({ ...current, name: displayName, phone }));
-        },
+        updateOwner,
         handleSignup,
         handleLogin,
-        user,
-        setUser,
       }}
     >
       {children}

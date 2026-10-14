@@ -11,7 +11,6 @@ import { useWallet } from "@/context/WalletContext";
 import { useTheme } from "@/hooks/use-theme";
 import { groupDigits, parseAmount } from "@/lib/format";
 import { goWith } from "@/lib/nav";
-import { updateUserProfile } from "@/services/users";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -22,7 +21,7 @@ const quick = [5000, 20000, 50000, 100000];
 export default function AddMoney() {
   const theme = useTheme();
   const { method: initial = "bank" } = useLocalSearchParams<{ method?: string }>();
-  const { owner, user, setUser } = useAuth();
+  const { owner } = useAuth();
   const { addMoney } = useWallet();
   const [method, setMethod] = useState(initial === "card" ? "card" : "bank");
   const [amount, setAmount] = useState("");
@@ -30,28 +29,21 @@ export default function AddMoney() {
   const [exp, setExp] = useState("");
   const [cvv, setCvv] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const fund = async() => {
     if (card.replace(/\s/g, "").length < 16) return setError("Enter a valid 16-digit card number.");
     if (exp.length < 5 || cvv.length < 3) return setError("Check the expiry date and CVV.");
 
     const topUpAmount = parseAmount(amount);
-    const res = addMoney(topUpAmount, `Card ending ${card.replace(/\s/g, "").slice(-4)}`);
+    setError(null);
+    setBusy(true);
+    // Only the last 4 digits are kept. The balance is updated atomically inside addMoney().
+    const res = await addMoney(topUpAmount, `Card ending ${card.replace(/\s/g, "").slice(-4)}`);
+    setBusy(false);
     if (!res.ok) return setError(res.error);
-
-    if (!user?.uid) return setError("Please sign in to complete this top-up.");
-
-    const currentBalance = Number(user.balance ?? 0);
-    const nextBalance = currentBalance + topUpAmount;
-
-    await updateUserProfile(user.uid, { balance: nextBalance });
-    setUser({ ...user, balance: nextBalance });
     goWith("/transfer/success", { kind: "topup", txId: res.id });
   };
-
-  useEffect(()=>{
-    console.log(user?.balance)
-  })
 
   return (
     <Container edges={["top", "bottom"]}>
@@ -67,7 +59,7 @@ export default function AddMoney() {
             <View style={{ backgroundColor: Colors.hero, borderRadius: Radius.xl, padding: Spacing.four - 2, overflow: "hidden" }}>
               <HeroDecor />
               <ThemedText type="label" style={{ color: Colors.heroMuted }}>Your {Brand.name} account</ThemedText>
-              <ThemedText style={{ color: "#FFF", fontSize: 36, fontWeight: "800", letterSpacing: 2, marginTop: Spacing.two }}>{Brand.accountNumber}</ThemedText>
+              <ThemedText style={{ color: "#FFF", fontSize: 36, fontWeight: "800", letterSpacing: 2, marginTop: Spacing.two }}>{owner.accountNumber}</ThemedText>
               <ThemedText style={{ color: Colors.heroMuted, marginTop: 4 }}>{Brand.bankName} · {owner.name}</ThemedText>
             </View>
             <ThemedText themeColor="textSecondary" style={{ marginTop: Spacing.four, lineHeight: 22 }}>
@@ -76,12 +68,12 @@ export default function AddMoney() {
             <Card style={{ marginTop: Spacing.three, paddingVertical: Spacing.one }}>
               <DetailRow label="Bank" value={Brand.bankName} />
               <DetailRow label="Account name" value={owner.name} />
-              <DetailRow label="Account number" value={Brand.accountNumber} last />
+              <DetailRow label="Account number" value={owner.accountNumber} last />
             </Card>
             <Button
               title="Share account details"
               iconLeft="share-outline"
-              onPress={() => Share.share({ message: `${owner.name}\n${Brand.bankName}\n${Brand.accountNumber}` })}
+              onPress={() => Share.share({ message: `${owner.name}\n${Brand.bankName}\n${owner.accountNumber}` })}
               style={{ marginTop: Spacing.four }}
             />
           </>
@@ -113,7 +105,7 @@ export default function AddMoney() {
               <Ionicons name="lock-closed" size={13} color={theme.textSecondary} />
               <ThemedText type="caption" themeColor="textSecondary" style={{ marginLeft: 6 }}>Card details are encrypted</ThemedText>
             </View>
-            <Button title="Add money" onPress={fund} style={{ marginTop: Spacing.four }} />
+            <Button title="Add money" onPress={fund} loading={busy} style={{ marginTop: Spacing.four }} />
           </>
         )}
       </View>

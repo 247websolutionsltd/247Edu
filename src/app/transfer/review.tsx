@@ -5,6 +5,7 @@ import PinPad from "@/components/pin-pad";
 import { ThemedText } from "@/components/themed-text";
 import { Card, DetailRow } from "@/components/ui";
 import { Brand } from "@/constants/brand";
+import { TRANSFER_FEE } from "@/services/wallet";
 import { Spacing } from "@/constants/theme";
 import { useWallet } from "@/context/WalletContext";
 import { formatMoney } from "@/lib/format";
@@ -17,22 +18,26 @@ export default function Review() {
   const p = useLocalSearchParams<{ name: string; bank: string; account: string; amount: string; note?: string; save?: string }>();
   const { transfer } = useWallet();
   const amount = Number(p.amount ?? 0);
-  const fee = p.bank === Brand.bankName ? 0 : 10.75;
+  const fee = p.bank === Brand.bankName ? 0 : TRANSFER_FEE;
   const [pinOpen, setPinOpen] = useState(false);
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const change = (v: string) => {
+  const change = async (v: string) => {
+    if (busy) return;
     setPin(v);
     setError(null);
     if (v.length === 4) {
+      setBusy(true);
       // Demo build: any 4-digit PIN is accepted. Validate against your backend here.
-      const res = transfer({ name: p.name!, bank: p.bank!, account: p.account!, amount, note: p.note, saveBeneficiary: p.save === "1" });
+      const res = await transfer({ name: p.name!, bank: p.bank!, account: p.account!, amount, note: p.note, saveBeneficiary: p.save === "1" });
       if (res.ok) goWith("/transfer/success", { kind: "transfer", txId: res.id });
       else {
         setError(res.error);
         setPin("");
       }
+      setBusy(false);
     }
   };
 
@@ -60,7 +65,7 @@ export default function Review() {
         ) : (
           <View style={{ paddingTop: Spacing.three }}>
             <ThemedText style={{ textAlign: "center" }} themeColor="textSecondary">Enter your 4-digit PIN to send {formatMoney(amount)}</ThemedText>
-            <PinPad value={pin} onChange={change} error={error} />
+            <PinPad value={pin} onChange={change} error={busy ? "Sending…" : error} />
           </View>
         )}
       </View>
