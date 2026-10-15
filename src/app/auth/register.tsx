@@ -1,6 +1,7 @@
 import AuthShell from "@/components/auth-shell";
 import Button from "@/components/button";
 import Input from "@/components/custom-input";
+import GoogleSignInButton from "@/components/google-signin-button";
 import { ThemedText } from "@/components/themed-text";
 import { Brand } from "@/constants/brand";
 import { Spacing } from "@/constants/theme";
@@ -50,6 +51,15 @@ export default function Register() {
       </ThemedText>
 
       <Button title="Create account" onPress={submit} loading={loading} style={{ marginTop: Spacing.four }} />
+
+      <View style={{ flexDirection: "row", alignItems: "center", marginTop: Spacing.four }}>
+        <View style={{ flex: 1, height: 1, backgroundColor: theme.line }} />
+        <ThemedText type="caption" themeColor="textSecondary" style={{ marginHorizontal: Spacing.three }}>OR SIGN UP WITH</ThemedText>
+        <View style={{ flex: 1, height: 1, backgroundColor: theme.line }} />
+      </View>
+      <View style={{ flexDirection: "row", marginTop: Spacing.three }}>
+        <GoogleSignInButton />
+      </View>
 
       <View style={{ flexDirection: "row", justifyContent: "center", marginTop: Spacing.four }}>
         <ThemedText type="small" themeColor="textSecondary">Already have an account? </ThemedText>

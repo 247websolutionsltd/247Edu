@@ -1,20 +1,23 @@
 {
   "expo": {
     "name": "247Fintech",
-    "slug": "247LFintech",
+    "slug": "247Fintech",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "fintech247",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.fintech247",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#EDF5F0",
         "foregroundImage": "./assets/images/icon.png"
       },
+      "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false,
       "package": "com.fintech247"
     },
@@ -23,8 +26,13 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1234567890-xxxx"
+        }
+      ],
       "expo-router",
-      // "@react-native-google-signin/google-signin",
       [
         "expo-splash-screen",
         {
@@ -33,7 +41,8 @@
           "imageWidth": 76
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -42,7 +51,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "bf074b99-643f-4424-b639-6905197fa871"
+        "projectId": "fad30089-3262-440f-a515-8902a69800ef"
       }
     }
   }
