@@ -1,104 +1,139 @@
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { Slide } from "@/data/onboardData";
+import { useTheme } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Dimensions, View } from "react-native";
-import { Logo } from "./brand";
 import { ThemedText } from "./themed-text";
 
 const { width } = Dimensions.get("window");
-const F = Colors.palette;
+const R = Colors.palette;
 
-const glass = {
-  backgroundColor: F.forest700,
-  borderWidth: 1,
-  borderColor: "rgba(255,255,255,0.10)",
-} as const;
+function Row({ code, title, score, grade }: { code: string; title: string; score: number; grade: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: "#F1E8E1" }}>
+      <View style={{ flex: 1 }}>
+        <ThemedText style={{ color: R.ink, fontWeight: "800", fontSize: 13 }}>{code}</ThemedText>
+        <ThemedText style={{ color: "#8A7B7E", fontSize: 11 }}>{title}</ThemedText>
+      </View>
+      <ThemedText style={{ color: R.ink, fontWeight: "700", marginRight: 10 }}>{score}</ThemedText>
+      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: grade === "A" ? "#DDF4E8" : "#E4EEFF", alignItems: "center", justifyContent: "center" }}>
+        <ThemedText style={{ color: grade === "A" ? "#0F7A4A" : "#2F6FDE", fontWeight: "900", fontSize: 14 }}>{grade}</ThemedText>
+      </View>
+    </View>
+  );
+}
 
 function Illustration({ kind }: { kind: Slide["kind"] }) {
+  const paper = { backgroundColor: "#FFFFFF", borderRadius: Radius.lg, padding: Spacing.three, borderWidth: 1, borderColor: "#EADFD6" } as const;
   return (
-    <View style={{ height: 300, alignItems: "center", justifyContent: "center" }}>
-      {/* glow */}
-      <View style={{ position: "absolute", width: 290, height: 290, borderRadius: 145, backgroundColor: F.forest600, opacity: 0.55 }} />
-      <View style={{ position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: F.forest500, opacity: 0.4 }} />
+    <View style={{ height: 320, alignItems: "center", justifyContent: "center" }}>
+      {/* crimson backdrop block */}
+      <View style={{ position: "absolute", width: 290, height: 270, borderRadius: Radius.xl, backgroundColor: R.red600, transform: [{ rotate: "-4deg" }] }} />
+      <View style={{ position: "absolute", width: 290, height: 270, borderRadius: Radius.xl, borderWidth: 2, borderColor: R.gold, transform: [{ rotate: "3deg" }] }} />
 
-      {kind === "save" && (
-        <>
-          <View style={[glass, { width: 270, borderRadius: Radius.lg, padding: Spacing.three + 2 }]}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: Colors.lime, alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="airplane" size={20} color={F.forest950} />
-              </View>
-              <View style={{ marginLeft: Spacing.three }}>
-                <ThemedText type="smallBold" style={{ color: "#FFF" }}>Dream Vacation</ThemedText>
-                <ThemedText type="caption" style={{ color: Colors.heroMuted }}>Due Dec 2026</ThemedText>
-              </View>
+      {kind === "results" && (
+        <View style={[paper, { width: 262 }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <ThemedText style={{ color: "#8A7B7E", fontSize: 10, fontWeight: "800", letterSpacing: 1.2 }}>CURRENT GPA</ThemedText>
+            <View style={{ backgroundColor: R.goldSurface, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 }}>
+              <ThemedText style={{ color: R.goldDeep, fontSize: 10, fontWeight: "800" }}>FIRST CLASS</ThemedText>
             </View>
-            <ThemedText type="title" style={{ color: "#FFF", marginTop: Spacing.three, fontSize: 28 }}>₦306,000</ThemedText>
-            <View style={{ height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.14)", marginTop: Spacing.two }}>
-              <View style={{ width: "68%", height: 8, borderRadius: 4, backgroundColor: Colors.lime }} />
-            </View>
-            <ThemedText type="caption" style={{ color: Colors.heroMuted, marginTop: Spacing.two }}>68% of ₦450,000</ThemedText>
           </View>
-          <View style={{ position: "absolute", right: 22, bottom: 26, backgroundColor: Colors.lime, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, transform: [{ rotate: "-6deg" }] }}>
-            <ThemedText type="smallBold" style={{ color: F.forest950 }}>+14% p.a.</ThemedText>
-          </View>
-        </>
+          <ThemedText type="stat" style={{ color: R.red600, fontSize: 44, lineHeight: 50, marginTop: 2 }}>4.38</ThemedText>
+          <Row code="CSC 301" title="Algorithms" score={82} grade="A" />
+          <Row code="CSC 305" title="Database Systems" score={88} grade="A" />
+          <Row code="MTH 301" title="Numerical Analysis" score={63} grade="B" />
+        </View>
       )}
 
-      {kind === "spend" && (
-        <>
-          <View style={{ position: "absolute", width: 250, height: 156, borderRadius: 22, backgroundColor: F.forest800, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)", transform: [{ rotate: "-9deg" }, { translateY: -22 }] }} />
-          <View style={{ width: 260, height: 164, borderRadius: 24, backgroundColor: Colors.lime, padding: Spacing.three + 2, justifyContent: "space-between", transform: [{ rotate: "4deg" }] }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Logo size={26} />
-              <Ionicons name="wifi" size={20} color={F.forest950} style={{ transform: [{ rotate: "90deg" }] }} />
-            </View>
-            <View>
-              <ThemedText style={{ color: F.forest950, fontWeight: "700", fontSize: 18, letterSpacing: 2 }}>••••  ••••  ••••  4821</ThemedText>
-              <ThemedText type="caption" style={{ color: F.forest800, marginTop: 4 }}>KEN NWAEZE</ThemedText>
+      {kind === "tests" && (
+        <View style={[paper, { width: 262 }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <ThemedText style={{ color: "#8A7B7E", fontSize: 10, fontWeight: "800", letterSpacing: 1.2 }}>QUESTION 3 OF 6</ThemedText>
+            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: R.red600, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+              <Ionicons name="time" size={12} color="#FFF" />
+              <ThemedText style={{ color: "#FFF", fontWeight: "800", fontSize: 12, marginLeft: 4 }}>04:52</ThemedText>
             </View>
           </View>
-          <View style={[glass, { position: "absolute", left: 14, bottom: 22, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 }]}>
-            <Ionicons name="lock-closed" size={13} color={Colors.lime} />
-            <ThemedText type="caption" style={{ color: "#FFF", marginLeft: 6 }}>Freeze anytime</ThemedText>
+          <View style={{ height: 5, borderRadius: 3, backgroundColor: "#F1E8E1", marginTop: 10 }}>
+            <View style={{ width: "50%", height: 5, borderRadius: 3, backgroundColor: R.red600 }} />
           </View>
-        </>
+          <ThemedText style={{ color: R.ink, fontFamily: undefined, fontWeight: "700", fontSize: 14, marginTop: 12, lineHeight: 19 }}>
+            Which sort is stable?
+          </ThemedText>
+          {["Heap sort", "Selection sort", "Merge sort"].map((o, i) => (
+            <View
+              key={o}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 7,
+                padding: 9,
+                borderRadius: 10,
+                borderWidth: 1.5,
+                borderColor: i === 2 ? R.red600 : "#EADFD6",
+                backgroundColor: i === 2 ? R.red50 : "#FFF",
+              }}
+            >
+              <View style={{ width: 20, height: 20, borderRadius: 6, backgroundColor: i === 2 ? R.red600 : "#F1E8E1", alignItems: "center", justifyContent: "center" }}>
+                <ThemedText style={{ color: i === 2 ? "#FFF" : "#8A7B7E", fontSize: 11, fontWeight: "800" }}>{"ABC"[i]}</ThemedText>
+              </View>
+              <ThemedText style={{ color: R.ink, fontSize: 13, fontWeight: "600", marginLeft: 8 }}>{o}</ThemedText>
+            </View>
+          ))}
+        </View>
       )}
 
-      {kind === "send" && (
-        <>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.lime, alignItems: "center", justifyContent: "center" }}>
-              <ThemedText style={{ color: F.forest950, fontWeight: "800", fontSize: 26 }}>KN</ThemedText>
+      {kind === "campus" && (
+        <View style={{ width: 262, gap: 10 }}>
+          <View style={[paper, { flexDirection: "row", alignItems: "center", padding: 12 }]}>
+            <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: R.red100, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="megaphone" size={18} color={R.red600} />
             </View>
-            <View style={{ width: width * 0.2, alignItems: "center" }}>
-              <View style={{ height: 0, width: "100%", borderTopWidth: 2, borderStyle: "dashed", borderColor: "rgba(255,255,255,0.4)" }} />
-              <View style={{ position: "absolute", width: 34, height: 34, borderRadius: 17, backgroundColor: F.forest600, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" }}>
-                <Ionicons name="arrow-forward" size={17} color="#FFF" />
-              </View>
-            </View>
-            <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
-              <ThemedText style={{ color: F.forest800, fontWeight: "800", fontSize: 26 }}>AO</ThemedText>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <ThemedText style={{ color: R.ink, fontWeight: "800", fontSize: 13 }}>Exam timetable released</ThemedText>
+              <ThemedText style={{ color: "#8A7B7E", fontSize: 11 }}>Examinations & Records · 3h ago</ThemedText>
             </View>
           </View>
-          <View style={[glass, { marginTop: 34, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderRadius: 999 }]}>
-            <Ionicons name="checkmark-circle" size={20} color={Colors.lime} />
-            <ThemedText type="smallBold" style={{ color: "#FFF", marginLeft: 8 }}>₦25,000 sent · just now</ThemedText>
+          <View style={[paper, { flexDirection: "row", alignItems: "center", padding: 12 }]}>
+            <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: R.goldSurface, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="document-text" size={18} color={R.goldDeep} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <ThemedText style={{ color: R.ink, fontWeight: "800", fontSize: 13 }}>Algorithms lecture notes</ThemedText>
+              <ThemedText style={{ color: "#8A7B7E", fontSize: 11 }}>PDF · 48 pages</ThemedText>
+            </View>
           </View>
-        </>
+          <View style={[paper, { flexDirection: "row", alignItems: "center", padding: 12 }]}>
+            <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: "#E4EEFF", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="time" size={18} color="#2F6FDE" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <ThemedText style={{ color: R.ink, fontWeight: "800", fontSize: 13 }}>Database Systems · Lab B</ThemedText>
+              <ThemedText style={{ color: "#8A7B7E", fontSize: 11 }}>Next class · 12:00 PM</ThemedText>
+            </View>
+          </View>
+        </View>
       )}
     </View>
   );
 }
 
 export default function OnboardingItem({ item }: { item: Slide }) {
+  const theme = useTheme();
   return (
-    <View style={{ width, paddingHorizontal: Spacing.four, paddingTop: Spacing.six }}>
+    <View style={{ width, paddingHorizontal: Spacing.four, paddingTop: Spacing.three }}>
       <Illustration kind={item.kind} />
-      <View style={{ marginTop: Spacing.four }}>
-        <ThemedText type="label" style={{ color: Colors.lime }}>{item.eyebrow}</ThemedText>
-        <ThemedText type="title" style={{ color: "#FFF", marginTop: Spacing.two }}>{item.title}</ThemedText>
-        <ThemedText style={{ color: Colors.heroMuted, marginTop: Spacing.three, lineHeight: 24 }}>{item.description}</ThemedText>
+      <View style={{ marginTop: Spacing.three }}>
+        <ThemedText type="label" style={{ color: theme.accent }}>
+          {item.eyebrow}
+        </ThemedText>
+        <ThemedText type="title" style={{ marginTop: Spacing.two }}>
+          {item.title}
+        </ThemedText>
+        <ThemedText themeColor="textSecondary" style={{ marginTop: Spacing.three, lineHeight: 24 }}>
+          {item.description}
+        </ThemedText>
       </View>
     </View>
   );

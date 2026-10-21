@@ -1,6 +1,6 @@
 export type Slide = {
   id: string;
-  kind: "save" | "spend" | "send";
+  kind: "results" | "tests" | "campus";
   eyebrow: string;
   title: string;
   description: string;
@@ -9,23 +9,23 @@ export type Slide = {
 export const onboardingData: Slide[] = [
   {
     id: "1",
-    kind: "save",
-    eyebrow: "SAVE",
-    title: "Grow your money, one goal at a time",
-    description: "Set goals, lock them if you need the discipline, and earn up to 14% a year on everything you put away.",
+    kind: "results",
+    eyebrow: "RESULTS",
+    title: "Your scores, the moment they're out",
+    description: "See every course, your CA and exam marks, your GPA each semester and your cumulative standing in one place.",
   },
   {
     id: "2",
-    kind: "spend",
-    eyebrow: "SPEND",
-    title: "A card that works everywhere online",
-    description: "Get an instant naira virtual card, pay bills and top up airtime, and freeze it in one tap if anything looks off.",
+    kind: "tests",
+    eyebrow: "TESTS",
+    title: "Take timed tests from your phone",
+    description: "Sit computer-based quizzes with a live countdown, get instant marking and review the answers you missed.",
   },
   {
     id: "3",
-    kind: "send",
-    eyebrow: "TRANSFER",
-    title: "Send money to anyone, instantly",
-    description: "Move money to any Nigerian bank account in seconds, with low fees and clear receipts every time.",
+    kind: "campus",
+    eyebrow: "CAMPUS",
+    title: "Notes, notices and your timetable",
+    description: "Download lecture materials, get official announcements first, and always know what class is next.",
   },
 ];

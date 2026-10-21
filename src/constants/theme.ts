@@ -1,94 +1,102 @@
 /**
- * Verdi design tokens.
- * Dark-first: deep forest greens with a lime accent. A light mode is provided too,
- * where the "hero" surfaces (balance card, auth header) stay deep green for brand consistency.
+ * Cardinal design tokens.
+ * Warm paper backgrounds, ink-black type and a confident crimson. Gold is used sparingly
+ * for achievement (grades, streaks). Headlines are set in a serif for an editorial,
+ * "report card" feel; everything else stays in the system sans.
  */
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
 const palette = {
-  forest950: '#04120C',
-  forest900: '#071A12',
-  forest850: '#0A2218',
-  forest800: '#0D2B1E',
-  forest700: '#123A29',
-  forest600: '#17482F',
-  forest500: '#1E5C3E',
-  forest400: '#2E7D57',
-  mint300: '#9FD8B7',
-  mint100: '#DDF3E5',
-  lime: '#B9F55B',
-  limeDeep: '#9BDD3B',
+  red950: '#2A0409',
+  red900: '#4A0711',
+  red800: '#74101F',
+  red700: '#9E1329',
+  red600: '#C8102E',
+  red500: '#E02B45',
+  red300: '#F4A1AC',
+  red100: '#FCE3E6',
+  red50: '#FFF3F4',
+  gold: '#F2B632',
+  goldDeep: '#B7820A',
+  goldSurface: '#FFF4D6',
+  ink: '#1C1315',
+  paper: '#FBF7F3',
   white: '#FFFFFF',
-  danger: '#FF6B6B',
-  warning: '#FFC857',
-  success: '#4ADE80',
+  green: '#1F8A5B',
+  blue: '#2F6FDE',
 } as const;
 
 export const Colors = {
   // Brand constants (theme independent)
-  primary: palette.forest500,
-  primaryDark: palette.forest800,
-  primaryTint: palette.mint100,
-  lime: palette.lime,
+  primary: palette.red600,
+  primaryDark: palette.red800,
+  primaryTint: palette.red100,
+  gold: palette.gold,
   palette,
 
-  // Hero surfaces stay green in both modes
-  hero: palette.forest600,
-  heroDeep: palette.forest700,
-  heroGlow: palette.forest500,
+  // Hero (masthead) surfaces stay crimson in both modes
+  hero: palette.red600,
+  heroDeep: palette.red800,
+  heroGlow: palette.red500,
   heroText: '#FFFFFF',
-  heroMuted: 'rgba(255,255,255,0.68)',
-  heroChip: 'rgba(255,255,255,0.12)',
+  heroMuted: 'rgba(255,255,255,0.74)',
+  heroChip: 'rgba(255,255,255,0.16)',
 
   light: {
-    text: '#0B1F16',
-    textSecondary: '#5B7166',
-    background: '#F2F6F3',
-    paper: '#F2F6F3',
+    text: palette.ink,
+    textSecondary: '#6E5F62',
+    background: palette.paper,
+    paper: palette.paper,
     card: '#FFFFFF',
-    cardAlt: '#E7F0EA',
-    backgroundElement: '#E7F0EA',
-    backgroundSelected: '#D5E4DB',
-    line: '#DCE7E0',
-    tint: '#DDF3E5',
-    inkSoft: '#8AA095',
-    accent: '#0F6B45',
-    accentSurface: '#E1F3E8',
-    accentText: '#0B4A30',
-    cta: '#0D3B27',
+    cardAlt: '#F5EEE8',
+    backgroundElement: '#F5EEE8',
+    backgroundSelected: '#EADFD6',
+    line: '#E9DFD8',
+    tint: palette.red100,
+    inkSoft: '#A39598',
+    accent: palette.red600,
+    accentSurface: palette.red50,
+    accentText: palette.red700,
+    cta: palette.red600,
     ctaText: '#FFFFFF',
-    controlOff: '#C9D6CE',
+    controlOff: '#D9CCC6',
     controlThumb: '#FFFFFF',
-    danger: '#D64545',
-    success: '#1E9E5A',
-    warning: '#C98A00',
-    overlay: 'rgba(7,26,18,0.5)',
+    danger: '#C8102E',
+    success: palette.green,
+    warning: palette.goldDeep,
+    info: palette.blue,
+    gold: palette.gold,
+    goldSurface: palette.goldSurface,
+    overlay: 'rgba(28,19,21,0.5)',
   },
   dark: {
-    text: '#F1F7F3',
-    textSecondary: '#8FAA9C',
-    background: palette.forest950,
-    paper: palette.forest950,
-    card: palette.forest850,
-    cardAlt: palette.forest800,
-    backgroundElement: palette.forest800,
-    backgroundSelected: palette.forest700,
-    line: '#16352A',
-    tint: palette.forest700,
-    inkSoft: '#5E7C6D',
-    accent: palette.lime,
-    accentSurface: '#123324',
-    accentText: palette.lime,
-    cta: palette.lime,
-    ctaText: palette.forest950,
-    controlOff: '#2A4A3B',
+    text: '#F7EEEE',
+    textSecondary: '#B3A0A3',
+    background: '#150B0D',
+    paper: '#150B0D',
+    card: '#201316',
+    cardAlt: '#2A1A1E',
+    backgroundElement: '#2A1A1E',
+    backgroundSelected: '#3A2429',
+    line: '#35232A',
+    tint: '#3A1219',
+    inkSoft: '#7D6A6E',
+    accent: '#FF5A70',
+    accentSurface: '#321017',
+    accentText: '#FF8D9C',
+    cta: palette.red600,
+    ctaText: '#FFFFFF',
+    controlOff: '#4A353B',
     controlThumb: '#FFFFFF',
-    danger: palette.danger,
-    success: palette.success,
-    warning: palette.warning,
-    overlay: 'rgba(0,0,0,0.6)',
+    danger: '#FF6B7D',
+    success: '#4ADE9A',
+    warning: '#F2B632',
+    info: '#7AA7FF',
+    gold: palette.gold,
+    goldSurface: '#3A2E10',
+    overlay: 'rgba(0,0,0,0.65)',
   },
 } as const;
 
@@ -98,7 +106,7 @@ export type AppColors = typeof Colors.light | typeof Colors.dark;
 export const Fonts = Platform.select({
   ios: {
     sans: 'system-ui',
-    serif: 'ui-serif',
+    serif: 'Georgia',
     rounded: 'ui-rounded',
     mono: 'ui-monospace',
   },
@@ -114,7 +122,7 @@ export const Fonts = Platform.select({
     rounded: 'var(--font-rounded)',
     mono: 'var(--font-mono)',
   },
-});
+}) as { sans: string; serif: string; rounded: string; mono: string };
 
 export const Spacing = {
   half: 2,
@@ -126,16 +134,19 @@ export const Spacing = {
   six: 64,
 } as const;
 
+/** Squarer than a typical "friendly" app on purpose: this is a school, not a bank. */
 export const Radius = {
-  sm: 12,
-  md: 18,
-  lg: 26,
-  xl: 34,
+  xs: 6,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 26,
   pill: 999,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
 
-/** Bottom padding tab screens need so content clears the floating tab bar. */
-export const TabBarSpace = 128;
+/** Height of the docked tab bar (excluding the safe-area inset). */
+export const TabBarHeight = 64;
+/** Bottom padding tab screens need so content clears the tab bar. */
+export const TabBarSpace = 40;

@@ -1,28 +1,39 @@
 import Container from "@/components/custom-container";
 import Header from "@/components/header";
-import { Card, ListRow, Toggle } from "@/components/ui";
+import { Card, ListRow } from "@/components/ui";
 import { Spacing } from "@/constants/theme";
-import { go } from "@/lib/nav";
-import { useState } from "react";
+import { useAuth } from "@/context/PageContext";
+import { authErrorMessage, resetPassword } from "@/services/auth";
 import { Alert, View } from "react-native";
 
 export default function Security() {
-  const [bio, setBio] = useState(true);
-  const [alerts, setAlerts] = useState(true);
-  const [twoFa, setTwoFa] = useState(false);
+  const { owner } = useAuth();
+
+  const changePassword = () => {
+    if (!owner.email) return;
+    Alert.alert("Change password", `We'll email a secure reset link to ${owner.email}.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Send link",
+        onPress: async () => {
+          try {
+            await resetPassword(owner.email);
+            Alert.alert("Check your inbox", "The reset link is on its way.");
+          } catch (e) {
+            Alert.alert("Couldn't send link", authErrorMessage(e));
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <Container edges={["top", "bottom"]}>
-      <Header title="Security" />
+      <Header title="Password & security" />
       <View style={{ paddingHorizontal: Spacing.three, gap: Spacing.three }}>
         <Card style={{ paddingVertical: 0 }}>
-          <ListRow icon="finger-print" title="Biometric sign-in" subtitle="Use fingerprint or Face ID" right={<Toggle value={bio} onValueChange={setBio} label="Biometric sign-in" />} />
-          <ListRow icon="notifications-outline" title="Transaction alerts" subtitle="Get notified on every debit and credit" right={<Toggle value={alerts} onValueChange={setAlerts} label="Transaction alerts" />} />
-          <ListRow icon="shield-checkmark-outline" title="Two-factor authentication" subtitle="Extra code when signing in" right={<Toggle value={twoFa} onValueChange={setTwoFa} label="Two-factor authentication" />} last />
-        </Card>
-        <Card style={{ paddingVertical: 0 }}>
-          <ListRow icon="keypad-outline" title="Change transaction PIN" subtitle="Your 4-digit PIN" onPress={() => Alert.alert("Change PIN", "PIN changes are handled by your backend in the live app.")} />
-          <ListRow icon="key-outline" title="Change password" onPress={() => go("/auth/forgot")} last />
+          <ListRow icon="key-outline" title="Change password" subtitle="Get a reset link by email" onPress={changePassword} />
+          <ListRow icon="mail-outline" title="Sign-in email" subtitle={owner.email || "—"} last />
         </Card>
       </View>
     </Container>

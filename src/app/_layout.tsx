@@ -1,12 +1,12 @@
 import { Colors } from '@/constants/theme';
 import { AppThemeProvider, AuthProvider, useAppTheme, useAuth } from '@/context/PageContext';
-import { WalletProvider } from '@/context/WalletContext';
+import { PortalProvider } from '@/context/PortalContext';
 import { goReplace } from '@/lib/nav';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 
-/** Signed-out users (or an expired session) can only see the splash, onboarding and auth screens. */
+/** Signed-out students can only see the splash, onboarding and auth screens. */
 function useAuthGuard() {
   const { authReady, uid } = useAuth();
   const segments = useSegments();
@@ -43,7 +43,7 @@ function Shell() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: c.background },
-          animation: 'slide_from_right',
+          animation: 'fade_from_bottom',
         }}
       />
     </ThemeProvider>
@@ -52,12 +52,12 @@ function Shell() {
 
 export default function RootLayout() {
   return (
-    // Verdi is dark-first; users can switch to light in Profile > Appearance.
-    <AppThemeProvider initialTheme="dark">
+    // Cardinal is light-first; students can switch to dark in Profile > Appearance.
+    <AppThemeProvider initialTheme="light">
       <AuthProvider>
-        <WalletProvider>
+        <PortalProvider>
           <Shell />
-        </WalletProvider>
+        </PortalProvider>
       </AuthProvider>
     </AppThemeProvider>
   );

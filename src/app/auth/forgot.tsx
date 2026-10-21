@@ -38,16 +38,16 @@ export default function Forgot() {
 
   return (
     <AuthShell
-      title={sent ? "Check your email" : "Forgot password?"}
-      subtitle={sent ? "Follow the link we sent to choose a new password." : "No stress. We'll email you a link to reset it."}
+      title={sent ? "Check your inbox" : "Reset your password"}
+      subtitle={sent ? "Follow the link we sent to choose a new password." : "Enter your email and we'll send you a reset link."}
       onBack={() => router.back()}
     >
       {sent ? (
         <>
           <Card alt style={{ flexDirection: "row", alignItems: "center" }}>
-            <IconBadge icon="mail" />
+            <IconBadge icon="mail" bg={theme.card} />
             <ThemedText type="small" themeColor="textSecondary" style={{ flex: 1, marginLeft: Spacing.three, lineHeight: 20 }}>
-              If an account exists for {logInForm.email.trim()}, a reset link is on its way. It may take a minute, and check spam if you don't see it.
+              If an account exists for {logInForm.email.trim()}, a reset link is on its way. It may take a minute, so check spam if you don't see it.
             </ThemedText>
           </Card>
           <Button title="Back to sign in" onPress={() => goReplace("/auth/logIn")} style={{ marginTop: Spacing.four }} />
@@ -55,12 +55,16 @@ export default function Forgot() {
         </>
       ) : (
         <>
-          <Input label="Email" icon="mail-outline" placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" value={logInForm.email} onChangeText={(t) => updateLogInField("email", t)} error={error} />
+          <Input label="Email" icon="mail-outline" placeholder="you@student.cardinal.edu" autoCapitalize="none" keyboardType="email-address" value={logInForm.email} onChangeText={(t) => updateLogInField("email", t)} error={error} />
           <Button title="Send reset link" onPress={submit} loading={busy} style={{ marginTop: Spacing.three }} />
           <View style={{ flexDirection: "row", justifyContent: "center", marginTop: Spacing.four }}>
-            <ThemedText type="small" themeColor="textSecondary">Remembered it? </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Remembered it?{" "}
+            </ThemedText>
             <TouchableOpacity onPress={() => goReplace("/auth/logIn")} hitSlop={8}>
-              <ThemedText type="smallBold" style={{ color: theme.accent }}>Back to sign in</ThemedText>
+              <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                Back to sign in
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </>

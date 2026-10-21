@@ -8,18 +8,21 @@ import { ThemedText } from "./themed-text";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
+/** Square-ish icon button used in headers and mastheads. */
 export function RoundButton({
   icon,
   onPress,
   label,
   onHero = false,
   dot = false,
+  count,
 }: {
   icon: IconName;
   onPress?: () => void;
   label?: string;
   onHero?: boolean;
   dot?: boolean;
+  count?: number;
 }) {
   const theme = useTheme();
   return (
@@ -30,64 +33,59 @@ export function RoundButton({
       style={{
         width: 44,
         height: 44,
-        borderRadius: Radius.pill,
+        borderRadius: Radius.md,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: onHero ? "rgba(255,255,255,0.14)" : theme.card,
+        backgroundColor: onHero ? "rgba(255,255,255,0.16)" : theme.card,
         borderWidth: onHero ? 0 : 1,
         borderColor: theme.line,
       }}
     >
       <Ionicons name={icon} size={20} color={onHero ? "#FFF" : theme.text} />
-      {dot && (
+      {typeof count === "number" && count > 0 ? (
         <View
           style={{
             position: "absolute",
-            top: 11,
-            right: 12,
-            width: 9,
-            height: 9,
-            borderRadius: 5,
-            backgroundColor: theme.danger,
-            borderWidth: 1.5,
-            borderColor: onHero ? "#17482F" : theme.card,
+            top: -5,
+            right: -5,
+            minWidth: 19,
+            height: 19,
+            paddingHorizontal: 4,
+            borderRadius: 10,
+            backgroundColor: "#F2B632",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 2,
+            borderColor: onHero ? "#C8102E" : theme.background,
           }}
-        />
-      )}
+        >
+          <ThemedText style={{ color: "#2A0409", fontSize: 10, lineHeight: 12, fontWeight: "900" }}>{count > 9 ? "9+" : count}</ThemedText>
+        </View>
+      ) : dot ? (
+        <View style={{ position: "absolute", top: 10, right: 11, width: 9, height: 9, borderRadius: 5, backgroundColor: "#F2B632" }} />
+      ) : null}
     </TouchableOpacity>
   );
 }
 
-/** Standard screen header: back button, centred title, optional right slot. */
-export default function Header({
-  title,
-  right,
-  back = true,
-  onBack,
-}: {
-  title?: string;
-  right?: ReactNode;
-  back?: boolean;
-  onBack?: () => void;
-}) {
+/** Standard screen header: back button, left-aligned serif title, optional right slot. */
+export default function Header({ title, right, back = true, onBack }: { title?: string; right?: ReactNode; back?: boolean; onBack?: () => void }) {
   return (
     <View
       style={{
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
         paddingHorizontal: Spacing.three,
         paddingVertical: Spacing.two,
-        minHeight: 60,
+        minHeight: 64,
+        gap: Spacing.three,
       }}
     >
-      <View style={{ width: 44 }}>
-        {back && <RoundButton icon="chevron-back" label="Go back" onPress={onBack ?? (() => router.back())} />}
-      </View>
-      <ThemedText type="bold" numberOfLines={1} style={{ flex: 1, textAlign: "center" }}>
+      {back && <RoundButton icon="arrow-back" label="Go back" onPress={onBack ?? (() => router.back())} />}
+      <ThemedText type="big" numberOfLines={1} style={{ flex: 1 }}>
         {title}
       </ThemedText>
-      <View style={{ width: 44, alignItems: "flex-end" }}>{right}</View>
+      {right ? <View style={{ alignItems: "flex-end" }}>{right}</View> : null}
     </View>
   );
 }

@@ -20,21 +20,11 @@ type ThemeContextType = {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function AppThemeProvider({
-  children,
-  initialTheme = "dark",
-}: {
-  children: ReactNode;
-  initialTheme?: ThemeMode;
-}) {
+export function AppThemeProvider({ children, initialTheme = "light" }: { children: ReactNode; initialTheme?: ThemeMode }) {
   const [themeMode, setThemeMode] = useState<ThemeMode>(initialTheme);
   const toggleThemeMode = () => setThemeMode((c) => (c === "light" ? "dark" : "light"));
 
-  return (
-    <ThemeContext.Provider value={{ themeMode, setThemeMode, toggleThemeMode }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ themeMode, setThemeMode, toggleThemeMode }}>{children}</ThemeContext.Provider>;
 }
 
 export function useAppTheme() {
@@ -48,15 +38,24 @@ export function useAppTheme() {
 /* -------------------------------------------------------------------------- */
 
 type LogInForm = { email: string; password: string };
-type RegisterForm = { email: string; password: string; confirm: string; name: string; phone: string };
+type RegisterForm = {
+  name: string;
+  studentId: string;
+  department: string;
+  level: string;
+  phone: string;
+  email: string;
+  password: string;
+  confirm: string;
+};
 
 export type Owner = {
   name: string;
-  tier: string;
-  phone: string;
   email: string;
-  referralCode: string;
-  accountNumber: string;
+  phone: string;
+  studentId: string;
+  department: string;
+  level: string;
 };
 
 type AuthContextType = {
@@ -64,7 +63,7 @@ type AuthContextType = {
   loading: boolean;
   /** Firebase has restored (or not) the previous session */
   authReady: boolean;
-  /** the first profile snapshot has arrived (or failed) for the signed-in user */
+  /** the first profile snapshot has arrived (or failed) for the signed-in student */
   profileReady: boolean;
   uid: string | null;
   user: UserProfile | null;
@@ -73,7 +72,7 @@ type AuthContextType = {
   updateLogInField: (field: keyof LogInForm, value: string) => void;
   registerForm: RegisterForm;
   updateRegisterField: (field: keyof RegisterForm, value: string) => void;
-  updateOwner: (patch: { name?: string; phone?: string }) => Promise<void>;
+  updateOwner: (patch: { name?: string; phone?: string; department?: string }) => Promise<void>;
   handleSignup: () => Promise<void>;
   handleLogin: () => Promise<void>;
 };
@@ -81,8 +80,8 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const emptyLogin: LogInForm = { email: "", password: "" };
-const emptyRegister: RegisterForm = { email: "", password: "", confirm: "", name: "", phone: "" };
-const emptyOwner: Owner = { name: "", tier: "", phone: "", email: "", referralCode: "", accountNumber: "" };
+const emptyRegister: RegisterForm = { name: "", studentId: "", department: "", level: "300", phone: "", email: "", password: "", confirm: "" };
+const emptyOwner: Owner = { name: "", email: "", phone: "", studentId: "", department: "", level: "" };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
@@ -112,10 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfileReady(false);
       setAuthReady(true);
 
-      // Create / repair the account document (no-op when it's already fine).
+      // Create / repair the student document (no-op when it's already fine).
       ensureUserAccount(fbUser).catch((e) => console.error("[auth] ensureUserAccount failed", e));
 
-      // Live profile: balance, name, phone, card state... update everywhere instantly.
+      // Live profile: name, phone, department... update everywhere instantly.
       unsubProfile = subscribeUserProfile(
         fbUser.uid,
         (profile) => {
@@ -143,9 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: user?.displayName ?? auth.currentUser?.displayName ?? "",
       email: user?.email ?? auth.currentUser?.email ?? "",
       phone: user?.phone ?? "",
-      tier: user?.tier ?? "",
-      referralCode: user?.referralCode ?? "",
-      accountNumber: user?.accountNumber ?? "",
+      studentId: user?.studentId ?? "",
+      department: user?.department ?? "",
+      level: user?.level ?? "",
     };
   }, [uid, user]);
 
@@ -156,11 +155,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const fbUser = await registerUser(registerForm.email, registerForm.password);
       const displayName = registerForm.name.trim();
       await updateProfile(fbUser, { displayName });
-      await ensureUserAccount(fbUser, { displayName, phone: registerForm.phone.trim() });
+      await ensureUserAccount(fbUser, {
+        displayName,
+        phone: registerForm.phone,
+        studentId: registerForm.studentId,
+        department: registerForm.department,
+        level: registerForm.level,
+      });
       setRegisterForm(emptyRegister); // don't keep passwords in memory
       goReplace("/(tabs)/home");
     } catch (error: unknown) {
-      Alert.alert("Signup failed", authErrorMessage(error));
+      Alert.alert("Registration failed", authErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -174,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLogInForm(emptyLogin);
       goReplace("/(tabs)/home");
     } catch (error: unknown) {
-      Alert.alert("Login failed", authErrorMessage(error));
+      Alert.alert("Sign-in failed", authErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -185,8 +190,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!fbUser) throw new Error("You must be signed in to update your profile.");
     const displayName = patch.name?.trim() ?? owner.name;
     const phone = patch.phone?.trim() ?? owner.phone;
+    const department = patch.department?.trim() ?? owner.department;
     await updateProfile(fbUser, { displayName });
-    await updateUserProfile(fbUser.uid, { displayName, phone });
+    await updateUserProfile(fbUser.uid, { displayName, phone, department });
     // the live profile listener refreshes `owner`
   };
 

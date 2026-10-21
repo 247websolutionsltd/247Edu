@@ -8,11 +8,11 @@ export default function Paginator({ count, currentIndex }: { count: number; curr
         <View
           key={i}
           style={{
-            height: 8,
-            width: currentIndex === i ? 28 : 8,
-            borderRadius: 4,
+            height: 6,
+            width: currentIndex === i ? 30 : 12,
+            borderRadius: 3,
             marginRight: 6,
-            backgroundColor: currentIndex === i ? Colors.lime : "rgba(255,255,255,0.25)",
+            backgroundColor: currentIndex === i ? Colors.primary : "rgba(200,16,46,0.22)",
           }}
         />
       ))}

@@ -1,228 +1,266 @@
 import Avatar from "@/components/avatar";
-import Container from "@/components/custom-container";
 import { RoundButton } from "@/components/header";
-import BigAmount from "@/components/money";
 import { ThemedText } from "@/components/themed-text";
-import TransactionRow from "@/components/transaction";
-import { Card, HeroDecor, IconBadge, ProgressBar, SectionHeader } from "@/components/ui";
+import { Card, HeroPattern, IconBadge, SectionHeader, StatTile, Tag } from "@/components/ui";
 import { Brand } from "@/constants/brand";
-import { Colors, Radius, Spacing, TabBarSpace } from "@/constants/theme";
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { classOfDegree, DAY_NAMES, slotsForDay, to12h } from "@/data/academics";
+import { announcements, categoryMeta } from "@/data/announcements";
+import { materials, typeMeta } from "@/data/materials";
+import { tests } from "@/data/tests";
 import { useAuth } from "@/context/PageContext";
-import { useWallet } from "@/context/WalletContext";
-import { IconName } from "@/data/categories";
+import { usePortal } from "@/context/PortalContext";
 import { useTheme } from "@/hooks/use-theme";
-import { compactMoney, formatMoney, greeting } from "@/lib/format";
-import { go } from "@/lib/nav";
+import { closesLabel, fmtGpa, greeting, timeAgo } from "@/lib/format";
+import { go, goWith } from "@/lib/nav";
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo } from "react";
-import { ScrollView, Share, TouchableOpacity, View } from "react-native";
+import { ScrollView, StatusBar, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const DAY = 86_400_000;
-const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
+const BARS = [3, 1, 2, 1, 3, 2, 1, 3, 1, 2, 3, 1, 2, 1, 3, 2, 1, 2, 3, 1, 2, 3, 1];
 
-const quickActions: { label: string; icon: IconName; route: string }[] = [
-  { label: "Add money", icon: "add", route: "/add-money/bank" },
-  { label: "Send", icon: "arrow-up", route: "/transfer" },
-  { label: "Save", icon: "leaf", route: "/(tabs)/save" },
-  { label: "Pay bills", icon: "flash", route: "/bills" },
+/** Finds the next class from now, looking up to a week ahead. */
+function nextClass(now = new Date()) {
+  const mins = now.getHours() * 60 + now.getMinutes();
+  for (let i = 0; i < 7; i++) {
+    const day = (now.getDay() + i) % 7;
+    const slots = slotsForDay(day);
+    const hit = slots.find((s) => {
+      if (i > 0) return true;
+      const [h, m] = s.end.split(":").map(Number);
+      return h * 60 + m > mins;
+    });
+    if (hit) return { slot: hit, when: i === 0 ? "Today" : i === 1 ? "Tomorrow" : DAY_NAMES[day] };
+  }
+  return null;
+}
+
+const QUICK = [
+  { label: "Results", icon: "ribbon" as const, route: "/(tabs)/results", tint: "#FCE3E6", color: "#C8102E" },
+  { label: "Tests", icon: "create" as const, route: "/(tabs)/tests", tint: "#FFF1CC", color: "#9A6B00" },
+  { label: "Library", icon: "library" as const, route: "/(tabs)/library", tint: "#E4EEFF", color: "#2F6FDE" },
+  { label: "Timetable", icon: "calendar" as const, route: "/timetable", tint: "#DDF4E8", color: "#0F7A4A" },
 ];
 
 export default function Home() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { owner } = useAuth();
-  const { balance: walletBalance, savingsTotal, transactions, goals, balanceHidden, toggleBalanceHidden, notifications } = useWallet();
-  const firstName = owner.name.split(" ")[0];
-  const unread = notifications.some((n) => n.unread);
-  // spending = money out, excluding transfers to savings
-  const { week, weekTotal } = useMemo(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    const days = Array.from({ length: 7 }, (_, i) => {
-      const start = now.getTime() - (6 - i) * DAY;
-      return { start, letter: DAY_LETTERS[new Date(start).getDay()], total: 0, today: i === 6 };
-    });
-    transactions.forEach((t) => {
-      if (t.kind !== "debit" || t.category === "savings") return;
-      const d = days.find((x) => t.ts >= x.start && t.ts < x.start + DAY);
-      if (d) d.total += t.amount;
-    });
-    return { week: days, weekTotal: days.reduce((s, d) => s + d.total, 0) };
-  }, [transactions]);
-  const maxDay = Math.max(...week.map((d) => d.total), 1);
+  const { cgpa, currentGpa, pendingTests, unreadCount, attempts, opened } = usePortal();
 
-  const shareAccount = () =>
-    Share.share({ message: `${owner.name}\n${Brand.bankName}\n${owner.accountNumber}` });
-
+  const first = owner.name.split(" ")[0] || "Student";
+  const next = nextClass();
+  const open = tests.filter((t) => !attempts[t.id]).slice(0, 2);
+  const latest = [...announcements].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || b.ts - a.ts).slice(0, 3);
+  const toRead = materials.filter((m) => !opened.includes(m.id)).slice(0, 6);
 
   return (
-    <Container edges={["top"]} style={{ paddingBottom: TabBarSpace }}>
-      {/* Header */}
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: Spacing.three, paddingTop: Spacing.two }}>
-        <TouchableOpacity onPress={() => go("/(tabs)/profile")} accessibilityLabel="Open profile">
-          <Avatar name={owner.name} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: Spacing.three }}>
-          <ThemedText type="caption" themeColor="textSecondary">{greeting()}</ThemedText>
-          <ThemedText type="big">{firstName}</ThemedText>
-        </View>
-        <RoundButton icon="notifications-outline" label="Notifications" dot={unread} onPress={() => go("/notifications")} />
-      </View>
-
-      {/* Balance hero */}
-      <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.four }}>
-        <View style={{ backgroundColor: Colors.hero, borderRadius: Radius.xl, padding: Spacing.four - 2, overflow: "hidden" }}>
-          <HeroDecor />
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <ThemedText type="label" style={{ color: Colors.heroMuted }}>Wallet balance</ThemedText>
-            <TouchableOpacity onPress={toggleBalanceHidden} hitSlop={12} accessibilityLabel={balanceHidden ? "Show balance" : "Hide balance"}>
-              <Ionicons name={balanceHidden ? "eye-off-outline" : "eye-outline"} size={20} color="#FFF" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ marginTop: Spacing.two }}>
-            <BigAmount value={walletBalance} hidden={balanceHidden} size={40} color="#FFF" mutedColor={Colors.heroMuted} />
-          </View>
-
-          <TouchableOpacity
-            onPress={shareAccount}
-            activeOpacity={0.8}
-            style={{ flexDirection: "row", alignItems: "center", alignSelf: "flex-start", marginTop: Spacing.three, backgroundColor: Colors.heroChip, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 }}
-          >
-            <ThemedText type="caption" style={{ color: "#FFF", fontWeight: "600" }}>
-              {Brand.bankName} · {owner.accountNumber}
-            </ThemedText>
-            <Ionicons name="share-outline" size={14} color="#FFF" style={{ marginLeft: 8 }} />
-          </TouchableOpacity>
-
-          <View style={{ flexDirection: "row", gap: Spacing.two, marginTop: Spacing.four }}>
-            <TouchableOpacity onPress={() => go("/(tabs)/save")} activeOpacity={0.85} style={{ flex: 1, backgroundColor: "rgba(4,18,12,0.28)", borderRadius: Radius.md, padding: Spacing.three - 2 }}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Ionicons name="leaf" size={14} color={Colors.lime} />
-                <ThemedText type="caption" style={{ color: Colors.heroMuted, marginLeft: 6 }}>Savings</ThemedText>
-              </View>
-              <ThemedText type="bold" style={{ color: "#FFF", marginTop: 4 }}>{balanceHidden ? "••••" : compactMoney(savingsTotal)}</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => go("/activity")} activeOpacity={0.85} style={{ flex: 1, backgroundColor: "rgba(4,18,12,0.28)", borderRadius: Radius.md, padding: Spacing.three - 2 }}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Ionicons name="trending-down" size={14} color={Colors.lime} />
-                <ThemedText type="caption" style={{ color: Colors.heroMuted, marginLeft: 6 }}>Spent this week</ThemedText>
-              </View>
-              <ThemedText type="bold" style={{ color: "#FFF", marginTop: 4 }}>{balanceHidden ? "••••" : compactMoney(weekTotal)}</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Quick actions */}
-      <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: Spacing.four, marginTop: Spacing.four }}>
-        {quickActions.map((a) => (
-          <TouchableOpacity key={a.label} onPress={() => go(a.route)} activeOpacity={0.8} style={{ alignItems: "center", width: 74 }} accessibilityLabel={a.label}>
-            <View style={{ width: 62, height: 62, borderRadius: 22, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name={a.icon} size={24} color={theme.accent} />
-            </View>
-            <ThemedText type="caption" style={{ marginTop: Spacing.two, fontWeight: "600" }}>{a.label}</ThemedText>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Goals */}
-      <View style={{ marginTop: Spacing.five }}>
-        <View style={{ paddingHorizontal: Spacing.three }}>
-          <SectionHeader title="Savings goals" action="See all" onAction={() => go("/(tabs)/save")} />
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: Spacing.three, gap: Spacing.three }}>
-          {goals.map((g) => (
-            <Card key={g.id} onPress={() => go(`/save/${g.id}`)} style={{ width: 216 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <IconBadge icon={g.icon} size={42} />
-                {g.locked && <Ionicons name="lock-closed" size={14} color={theme.textSecondary} />}
-              </View>
-              <ThemedText type="smallBold" style={{ marginTop: Spacing.three }} numberOfLines={1}>{g.name}</ThemedText>
-              <ThemedText type="caption" themeColor="textSecondary" style={{ marginTop: 2 }}>
-                {compactMoney(g.saved)} of {compactMoney(g.target)}
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <StatusBar barStyle="light-content" />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.five }} overScrollMode="never">
+        {/* ---------------------------- masthead ---------------------------- */}
+        <View
+          style={{
+            backgroundColor: Colors.hero,
+            paddingTop: insets.top + Spacing.three,
+            paddingHorizontal: Spacing.four,
+            paddingBottom: 84,
+            borderBottomLeftRadius: Radius.xl,
+            borderBottomRightRadius: Radius.xl,
+            overflow: "hidden",
+          }}
+        >
+          <HeroPattern />
+          <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: Spacing.three }}>
+            <Avatar name={owner.name} size={46} onHero />
+            <View style={{ flex: 1, marginLeft: Spacing.three }}>
+              <ThemedText type="caption" style={{ color: Colors.heroMuted, fontWeight: "700", letterSpacing: 0.4 }}>
+                {greeting()}
               </ThemedText>
-              <View style={{ marginTop: Spacing.three }}>
-                <ProgressBar value={g.saved / g.target} />
-              </View>
-            </Card>
-          ))}
-          <TouchableOpacity
-            onPress={() => go("/save/new-goal")}
-            activeOpacity={0.8}
-            style={{ width: 130, borderRadius: Radius.lg, borderWidth: 1.5, borderStyle: "dashed", borderColor: theme.inkSoft, alignItems: "center", justifyContent: "center", padding: Spacing.three }}
-          >
-            <Ionicons name="add-circle-outline" size={28} color={theme.accent} />
-            <ThemedText type="smallBold" style={{ marginTop: Spacing.two, color: theme.accent }}>New goal</ThemedText>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-
-      {/* Weekly insight */}
-      <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.five }}>
-        <SectionHeader title="This week" />
-        <Card>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <View>
-              <ThemedText type="caption" themeColor="textSecondary">Total spent</ThemedText>
-              <ThemedText type="subtitle" style={{ marginTop: 2 }}>{balanceHidden ? "₦••••••" : formatMoney(weekTotal, { decimals: false })}</ThemedText>
+              <ThemedText type="big" style={{ color: "#FFF" }} numberOfLines={1}>
+                {first}
+              </ThemedText>
             </View>
-            <TouchableOpacity onPress={() => go("/(tabs)/cards")} hitSlop={10}>
-              <ThemedText type="smallBold" style={{ color: theme.accent }}>Breakdown</ThemedText>
-            </TouchableOpacity>
+            <RoundButton icon="notifications-outline" onHero count={unreadCount} label="Announcements" onPress={() => go("/announcements")} />
           </View>
-          <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 110, marginTop: Spacing.four }}>
-            {week.map((d, i) => (
-              <View key={i} style={{ flex: 1, alignItems: "center", justifyContent: "flex-end" }}>
-                <View
-                  style={{
-                    width: 26,
-                    height: Math.max(6, (d.total / maxDay) * 84),
-                    borderRadius: 8,
-                    backgroundColor: d.today ? theme.accent : theme.line,
-                  }}
-                />
-                <ThemedText type="caption" themeColor={d.today ? "accent" : "textSecondary"} style={{ marginTop: 8, fontWeight: d.today ? "700" : "500" }}>
-                  {d.letter}
+          <View style={{ paddingLeft: Spacing.three, marginTop: Spacing.four }}>
+            <ThemedText type="label" style={{ color: Colors.gold }}>
+              {Brand.session} · {Brand.semester}
+            </ThemedText>
+            <ThemedText type="title" style={{ color: "#FFF", marginTop: 4 }}>
+              {pendingTests > 0 ? `${pendingTests} test${pendingTests > 1 ? "s" : ""} waiting\nfor you.` : "You're all\ncaught up."}
+            </ThemedText>
+          </View>
+        </View>
+
+        <View style={{ paddingHorizontal: Spacing.three }}>
+          {/* --------------------------- ID card --------------------------- */}
+          <View
+            style={{
+              marginTop: -56,
+              backgroundColor: theme.card,
+              borderRadius: Radius.lg,
+              borderWidth: 1,
+              borderColor: theme.line,
+              overflow: "hidden",
+              shadowColor: "#2A0409",
+              shadowOpacity: 0.12,
+              shadowRadius: 20,
+              shadowOffset: { width: 0, height: 8 },
+              elevation: 5,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: theme.cardAlt, paddingHorizontal: Spacing.three, paddingVertical: 8 }}>
+              <Ionicons name="school" size={14} color={theme.accent} />
+              <ThemedText type="label" style={{ marginLeft: 6, color: theme.accent, fontSize: 10 }}>
+                {Brand.school} · Student ID
+              </ThemedText>
+            </View>
+            <View style={{ flexDirection: "row", padding: Spacing.three, alignItems: "center" }}>
+              <Avatar name={owner.name} size={64} square />
+              <View style={{ flex: 1, marginLeft: Spacing.three }}>
+                <ThemedText type="big" numberOfLines={1}>
+                  {owner.name || "Student"}
+                </ThemedText>
+                <ThemedText type="smallBold" style={{ color: theme.accent, marginTop: 1 }}>
+                  {owner.studentId || "—"}
+                </ThemedText>
+                <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1} style={{ marginTop: 2 }}>
+                  {owner.department || "Department"} · {owner.level || "—"} Level
                 </ThemedText>
               </View>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", height: 26, paddingHorizontal: Spacing.three, paddingBottom: Spacing.two, gap: 2 }}>
+              {BARS.map((w, i) => (
+                <View key={i} style={{ width: w, height: i % 5 === 0 ? 18 : 14, backgroundColor: theme.text, opacity: 0.75 }} />
+              ))}
+            </View>
+          </View>
+
+          {/* ---------------------------- stats ---------------------------- */}
+          <View style={{ flexDirection: "row", gap: Spacing.two + 2, marginTop: Spacing.three }}>
+            <StatTile label="CGPA" value={fmtGpa(cgpa)} sub={classOfDegree(cgpa)} icon="trophy" tone={theme.accent} />
+            <StatTile label="This sem." value={fmtGpa(currentGpa)} sub={`of ${Brand.gpaScale.toFixed(1)}`} icon="trending-up" />
+            <StatTile label="Tests due" value={String(pendingTests)} sub="not yet taken" icon="time" />
+          </View>
+
+          {/* --------------------------- next class --------------------------- */}
+          {next && (
+            <Card accent style={{ marginTop: Spacing.three, flexDirection: "row", alignItems: "center" }} onPress={() => go("/timetable")}>
+              <View style={{ flex: 1 }}>
+                <ThemedText type="label" style={{ color: theme.accent, fontSize: 10 }}>
+                  Up next · {next.when}
+                </ThemedText>
+                <ThemedText type="bold" style={{ marginTop: 3 }} numberOfLines={1}>
+                  {next.slot.code} · {next.slot.title}
+                </ThemedText>
+                <ThemedText type="caption" themeColor="textSecondary" style={{ marginTop: 2 }}>
+                  {to12h(next.slot.start)} – {to12h(next.slot.end)} · {next.slot.venue}
+                </ThemedText>
+              </View>
+              <IconBadge icon="chevron-forward" size={36} />
+            </Card>
+          )}
+
+          {/* ---------------------------- quick access ---------------------------- */}
+          <View style={{ flexDirection: "row", gap: Spacing.two + 2, marginTop: Spacing.four }}>
+            {QUICK.map((q) => (
+              <TouchableOpacity
+                key={q.label}
+                activeOpacity={0.85}
+                onPress={() => go(q.route)}
+                accessibilityLabel={q.label}
+                style={{ flex: 1, alignItems: "center", paddingVertical: Spacing.three, borderRadius: Radius.lg, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line }}
+              >
+                <IconBadge icon={q.icon} size={44} bg={q.tint} color={q.color} />
+                <ThemedText type="caption" style={{ marginTop: 8, fontWeight: "800" }}>
+                  {q.label}
+                </ThemedText>
+              </TouchableOpacity>
             ))}
           </View>
-        </Card>
-      </View>
 
-      {/* Recent transactions */}
-      <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.five }}>
-        <SectionHeader title="Recent activity" action="See all" onAction={() => go("/activity")} />
-        <Card style={{ paddingVertical: Spacing.one }}>
-          {transactions.length === 0 && (
-            <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: "center", paddingVertical: Spacing.four }}>
-              No transactions yet. Add money to get started.
-            </ThemedText>
+          {/* --------------------------- announcements --------------------------- */}
+          <View style={{ marginTop: Spacing.five }}>
+            <SectionHeader kicker="Notice board" title="Announcements" action="See all" onAction={() => go("/announcements")} />
+            <View style={{ gap: Spacing.two + 2 }}>
+              {latest.map((a) => (
+                <Card key={a.id} accent={categoryMeta[a.category].color} onPress={() => goWith("/announcements/[id]", { id: a.id })}>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <Tag label={a.category} color={categoryMeta[a.category].color} bg={theme.cardAlt} icon={categoryMeta[a.category].icon} />
+                    <ThemedText type="caption" themeColor="textSecondary">
+                      {a.pinned ? "📌 " : ""}
+                      {timeAgo(a.ts)}
+                    </ThemedText>
+                  </View>
+                  <ThemedText type="bold" style={{ marginTop: Spacing.two }} numberOfLines={2}>
+                    {a.title}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: 2 }} numberOfLines={2}>
+                    {a.summary}
+                  </ThemedText>
+                </Card>
+              ))}
+            </View>
+          </View>
+
+          {/* ------------------------------ tests ------------------------------ */}
+          {open.length > 0 && (
+            <View style={{ marginTop: Spacing.five }}>
+              <SectionHeader kicker="Open now" title="Tests to take" action="All tests" onAction={() => go("/(tabs)/tests")} />
+              <View style={{ gap: Spacing.two + 2 }}>
+                {open.map((t) => (
+                  <Card key={t.id} onPress={() => goWith("/test/[id]", { id: t.id })} style={{ flexDirection: "row", alignItems: "center" }}>
+                    <IconBadge icon="create" size={46} bg={theme.goldSurface} color={theme.warning} />
+                    <View style={{ flex: 1, marginLeft: Spacing.three }}>
+                      <ThemedText type="smallBold" numberOfLines={1}>
+                        {t.title}
+                      </ThemedText>
+                      <ThemedText type="caption" themeColor="textSecondary" style={{ marginTop: 2 }}>
+                        {t.courseCode} · {t.questions.length} questions · {t.durationMin} min
+                      </ThemedText>
+                      <ThemedText type="caption" style={{ color: theme.accent, marginTop: 2, fontWeight: "700" }}>
+                        {closesLabel(t.closesInDays)}
+                      </ThemedText>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={theme.inkSoft} />
+                  </Card>
+                ))}
+              </View>
+            </View>
           )}
-          {transactions.slice(0, 5).map((t, i, arr) => (
-            <TransactionRow key={t.id} tx={t} hidden={balanceHidden} last={i === arr.length - 1} onPress={() => go(`/transaction/${t.id}`)} />
-          ))}
-        </Card>
-      </View>
+        </View>
 
-      {/* Referral banner */}
-      <View style={{ paddingHorizontal: Spacing.three, marginTop: Spacing.five }}>
-        <TouchableOpacity
-          onPress={() => go("/refer")}
-          activeOpacity={0.9}
-          style={{ backgroundColor: Colors.lime, borderRadius: Radius.lg, padding: Spacing.four - 4, flexDirection: "row", alignItems: "center", overflow: "hidden" }}
-        >
-          <View style={{ flex: 1 }}>
-            <ThemedText type="bold" style={{ color: Colors.palette.forest950 }}>Invite friends, earn ₦2,000</ThemedText>
-            <ThemedText type="small" style={{ color: Colors.palette.forest800, marginTop: 4 }}>
-              They get ₦2,000 too when they fund their wallet.
-            </ThemedText>
+        {/* ------------------------------ reading ------------------------------ */}
+        {toRead.length > 0 && (
+          <View style={{ marginTop: Spacing.five }}>
+            <View style={{ paddingHorizontal: Spacing.three }}>
+              <SectionHeader kicker="Keep studying" title="From your library" action="Browse" onAction={() => go("/(tabs)/library")} />
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: Spacing.three, gap: Spacing.two + 2 }}>
+              {toRead.map((m) => {
+                const meta = typeMeta[m.type];
+                return (
+                  <TouchableOpacity
+                    key={m.id}
+                    activeOpacity={0.85}
+                    onPress={() => goWith("/material/[id]", { id: m.id })}
+                    style={{ width: 188, padding: Spacing.three, borderRadius: Radius.lg, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line }}
+                  >
+                    <IconBadge icon={meta.icon} size={40} bg={meta.bg} color={meta.color} />
+                    <ThemedText type="smallBold" numberOfLines={2} style={{ marginTop: Spacing.three, minHeight: 40 }}>
+                      {m.title}
+                    </ThemedText>
+                    <ThemedText type="caption" themeColor="textSecondary" style={{ marginTop: 4 }}>
+                      {m.courseCode} · {m.type}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
-          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.palette.forest950, alignItems: "center", justifyContent: "center", marginLeft: Spacing.three }}>
-            <Ionicons name="gift" size={22} color={Colors.lime} />
-          </View>
-        </TouchableOpacity>
-      </View>
-    </Container>
+        )}
+      </ScrollView>
+    </View>
   );
 }

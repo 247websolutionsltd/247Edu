@@ -6,7 +6,7 @@ import { ActivityIndicator, StyleProp, StyleSheet, TouchableOpacity, View, ViewS
 import { ThemedText } from "./themed-text";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
-type Variant = "primary" | "secondary" | "lime" | "soft" | "danger";
+type Variant = "primary" | "dark" | "secondary" | "soft" | "danger" | "light";
 
 type Props = {
   title: string;
@@ -20,25 +20,16 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-export default function Button({
-  title,
-  onPress,
-  variant = "primary",
-  loading = false,
-  disabled = false,
-  icon,
-  iconLeft,
-  small = false,
-  style,
-}: Props) {
+export default function Button({ title, onPress, variant = "primary", loading = false, disabled = false, icon, iconLeft, small = false, style }: Props) {
   const theme = useTheme();
 
   const palette = {
     primary: { bg: theme.cta, fg: theme.ctaText, border: "transparent" },
-    lime: { bg: Colors.lime, fg: Colors.palette.forest950, border: "transparent" },
-    soft: { bg: theme.accentSurface, fg: theme.accentText, border: "transparent" },
-    secondary: { bg: "transparent", fg: theme.text, border: theme.line },
-    danger: { bg: "transparent", fg: theme.danger, border: theme.line },
+    dark: { bg: Colors.palette.ink, fg: "#FFFFFF", border: "transparent" },
+    light: { bg: "#FFFFFF", fg: Colors.primary, border: "transparent" },
+    soft: { bg: theme.accentSurface, fg: theme.accentText, border: theme.line },
+    secondary: { bg: "transparent", fg: theme.text, border: theme.text },
+    danger: { bg: "transparent", fg: theme.danger, border: theme.danger },
   }[variant];
 
   return (
@@ -48,20 +39,15 @@ export default function Button({
       disabled={disabled || loading}
       accessibilityRole="button"
       accessibilityLabel={title}
-      style={[
-        styles.base,
-        small && styles.small,
-        { backgroundColor: palette.bg, borderColor: palette.border, opacity: disabled ? 0.45 : 1 },
-        style,
-      ]}
+      style={[styles.base, small && styles.small, { backgroundColor: palette.bg, borderColor: palette.border, opacity: disabled ? 0.45 : 1 }, style]}
     >
       {loading ? (
         <ActivityIndicator color={palette.fg} />
       ) : (
         <View style={styles.row}>
-          {iconLeft && <Ionicons name={iconLeft} size={small ? 16 : 20} color={palette.fg} style={{ marginRight: Spacing.two }} />}
-          <ThemedText style={{ color: palette.fg, fontSize: small ? 14 : 16, fontWeight: "700" }}>{title}</ThemedText>
-          {icon && <Ionicons name={icon} size={small ? 16 : 20} color={palette.fg} style={{ marginLeft: Spacing.two }} />}
+          {iconLeft && <Ionicons name={iconLeft} size={small ? 16 : 19} color={palette.fg} style={{ marginRight: Spacing.two }} />}
+          <ThemedText style={{ color: palette.fg, fontSize: small ? 14 : 15, fontWeight: "800", letterSpacing: 0.3 }}>{title}</ThemedText>
+          {icon && <Ionicons name={icon} size={small ? 16 : 19} color={palette.fg} style={{ marginLeft: Spacing.two }} />}
         </View>
       )}
     </TouchableOpacity>
@@ -70,13 +56,13 @@ export default function Button({
 
 const styles = StyleSheet.create({
   base: {
-    height: 58,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
+    height: 54,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: Spacing.four,
   },
-  small: { height: 42, paddingHorizontal: Spacing.three },
+  small: { height: 40, paddingHorizontal: Spacing.three, borderRadius: Radius.sm },
   row: { flexDirection: "row", alignItems: "center" },
 });

@@ -17,7 +17,7 @@ export const logoutUser = () => signOut(auth);
 
 export const resetPassword = (email: string) => sendPasswordResetEmail(auth, email.trim());
 
-/** Turns Firebase Auth errors into something a customer can act on. */
+/** Turns Firebase Auth errors into something a student can act on. */
 export function authErrorMessage(error: unknown): string {
   const code = (error as { code?: string })?.code ?? "";
   switch (code) {
@@ -35,7 +35,7 @@ export function authErrorMessage(error: unknown): string {
     case "auth/too-many-requests":
       return "Too many attempts. Please wait a few minutes and try again.";
     case "auth/user-disabled":
-      return "This account has been disabled. Contact support.";
+      return "This account has been disabled. Contact the ICT help desk.";
     case "auth/network-request-failed":
       return "Can't reach the server. Check your connection and try again.";
     case "auth/operation-not-allowed":

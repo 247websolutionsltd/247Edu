@@ -1,15 +1,5 @@
-import {
-  doc,
-  onSnapshot,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-  collection,
-  type DocumentSnapshot,
-  type Unsubscribe,
-} from "firebase/firestore";
+import { doc, onSnapshot, runTransaction, serverTimestamp, setDoc, type DocumentSnapshot, type Unsubscribe } from "firebase/firestore";
 
-import { welcomeNotifications } from "@/data/notifications";
 import type { User } from "firebase/auth";
 import { db } from "../config/firebase";
 
@@ -19,15 +9,12 @@ export type UserProfile = {
   displayName?: string;
   photoURL?: string;
   phone?: string;
-  balance: number;
-  accountNumber: string;
-  referralCode: string;
-  tier: string;
-  cardFrozen: boolean;
-  roundUps: boolean;
+  studentId: string;
+  department: string;
+  level: string;
 };
 
-export const DEFAULT_TIER = "Tier 1 · Basic";
+export const LEVELS = ["100", "200", "300", "400", "500"] as const;
 
 export const userRef = (uid: string) => doc(db, "users", uid);
 
@@ -35,20 +22,10 @@ export const userRef = (uid: string) => doc(db, "users", uid);
 
 const digits = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join("");
 
-// NOTE: random, not guaranteed unique. Issue real account numbers from a server in production.
-export const generateAccountNumber = () => "70" + digits(8);
-
-export function generateReferralCode(name?: string | null) {
-  const letters = (name ?? "").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3).padEnd(3, "V");
-  return letters + digits(4);
-}
+// NOTE: random, not guaranteed unique. Issue real matric numbers from your registry in production.
+export const generateStudentId = () => `CAD/${new Date().getFullYear().toString().slice(2)}/${digits(4)}`;
 
 /* -------------------------------- mapping -------------------------------- */
-
-const toNumber = (v: unknown): number | null => {
-  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
-  return Number.isFinite(n) ? n : null;
-};
 
 export function toProfile(snap: DocumentSnapshot): UserProfile | null {
   if (!snap.exists()) return null;
@@ -58,28 +35,22 @@ export function toProfile(snap: DocumentSnapshot): UserProfile | null {
     email: d.email,
     displayName: d.displayName,
     photoURL: d.photoURL,
-    // older docs stored this as `phoneNumber`
     phone: d.phone ?? d.phoneNumber ?? "",
-    balance: toNumber(d.balance) ?? 0,
-    accountNumber: d.accountNumber ?? "",
-    referralCode: d.referralCode ?? "",
-    tier: d.tier ?? DEFAULT_TIER,
-    cardFrozen: d.cardFrozen === true,
-    roundUps: d.roundUps !== false,
+    studentId: d.studentId ?? "",
+    department: d.department ?? "",
+    level: d.level ?? "100",
   };
 }
 
 /* ------------------------------ operations ------------------------------- */
 
+type Extra = { displayName?: string; phone?: string; studentId?: string; department?: string; level?: string };
+
 /**
- * Idempotent: creates the account document for a new user (balance 0, account number,
- * referral code, welcome notifications) and repairs documents from older app versions
- * (string balances, missing account number...). Safe to call on every sign-in.
+ * Idempotent: creates the student document on first sign-in and fills in anything missing
+ * on later ones. Safe to call on every sign-in.
  */
-export async function ensureUserAccount(
-  user: User,
-  extra: { displayName?: string; phone?: string } = {},
-): Promise<void> {
+export async function ensureUserAccount(user: User, extra: Extra = {}): Promise<void> {
   const ref = userRef(user.uid);
   const displayName = extra.displayName?.trim() || user.displayName || undefined;
 
@@ -93,39 +64,22 @@ export async function ensureUserAccount(
         ...(displayName ? { displayName } : {}),
         ...(user.photoURL ? { photoURL: user.photoURL } : {}),
         phone: extra.phone?.trim() ?? "",
-        balance: 0,
-        accountNumber: generateAccountNumber(),
-        referralCode: generateReferralCode(displayName),
-        tier: DEFAULT_TIER,
-        cardFrozen: false,
-        roundUps: true,
+        studentId: extra.studentId?.trim().toUpperCase() || generateStudentId(),
+        department: extra.department?.trim() || "Computer Science",
+        level: extra.level || "300",
         createdAt: Date.now(),
         updatedAt: serverTimestamp(),
-      });
-      const now = Date.now();
-      welcomeNotifications(displayName?.split(" ")[0]).forEach((n, i) => {
-        t.set(doc(collection(db, "users", user.uid, "notifications")), { ...n, ts: now - i, unread: true });
       });
       return;
     }
 
     const d = snap.data();
     const patch: Record<string, unknown> = {};
-
-    const balance = toNumber(d.balance);
-    if (balance === null || balance < 0) throw new Error("The stored wallet balance is invalid.");
-    if (typeof d.balance !== "number") patch.balance = balance; // legacy string balance
-
-    if (!d.accountNumber) patch.accountNumber = generateAccountNumber();
-    if (!d.referralCode) patch.referralCode = generateReferralCode(displayName ?? d.displayName);
-    if (!d.tier) patch.tier = DEFAULT_TIER;
-    if (typeof d.cardFrozen !== "boolean") patch.cardFrozen = false;
-    if (typeof d.roundUps !== "boolean") patch.roundUps = true;
+    if (!d.studentId) patch.studentId = extra.studentId?.trim().toUpperCase() || generateStudentId();
+    if (!d.department) patch.department = extra.department?.trim() || "Computer Science";
+    if (!d.level) patch.level = extra.level || "300";
     if (!d.phone && d.phoneNumber) patch.phone = d.phoneNumber;
-    if (extra.displayName?.trim() && d.displayName !== extra.displayName.trim()) patch.displayName = extra.displayName.trim();
-    if (extra.phone?.trim() && d.phone !== extra.phone.trim()) patch.phone = extra.phone.trim();
     if (!d.email && user.email) patch.email = user.email;
-
     if (Object.keys(patch).length) t.set(ref, { ...patch, updatedAt: serverTimestamp() }, { merge: true });
   });
 }
@@ -138,10 +92,7 @@ export function subscribeUserProfile(
   return onSnapshot(userRef(uid), (snap) => onData(toProfile(snap)), onError);
 }
 
-/** Only fields a customer may change directly. Balance is never written from here. */
-export async function updateUserProfile(
-  uid: string,
-  patch: Partial<Pick<UserProfile, "displayName" | "phone" | "cardFrozen" | "roundUps">>,
-) {
+/** Only fields a student may change directly. */
+export async function updateUserProfile(uid: string, patch: Partial<Pick<UserProfile, "displayName" | "phone" | "department">>) {
   await setDoc(userRef(uid), { ...patch, updatedAt: serverTimestamp() }, { merge: true });
 }

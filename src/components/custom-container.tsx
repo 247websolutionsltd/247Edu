@@ -1,7 +1,7 @@
 import { useTheme } from "@/hooks/use-theme";
+import { ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleProp, ViewStyle } from "react-native";
 import { Edge, SafeAreaView } from "react-native-safe-area-context";
-import { ReactNode } from "react";
 
 interface ContainerProps {
   children?: ReactNode;
@@ -11,13 +11,7 @@ interface ContainerProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export default function Container({
-  children,
-  backgroundColor,
-  style,
-  edges = ["top", "bottom"],
-  scroll = true,
-}: ContainerProps) {
+export default function Container({ children, backgroundColor, style, edges = ["top", "bottom"], scroll = true }: ContainerProps) {
   const theme = useTheme();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: backgroundColor || theme.background }} edges={edges}>

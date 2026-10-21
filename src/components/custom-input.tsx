@@ -10,7 +10,6 @@ type IconName = ComponentProps<typeof Ionicons>["name"];
 interface InputProps extends TextInputProps {
   label?: string;
   icon?: IconName;
-  prefix?: string;
   password?: boolean;
   number?: boolean;
   desc?: boolean;
@@ -18,20 +17,7 @@ interface InputProps extends TextInputProps {
   right?: ReactNode;
 }
 
-export default function Input({
-  label,
-  icon,
-  prefix,
-  password,
-  number = false,
-  desc,
-  error,
-  right,
-  style,
-  onFocus,
-  onBlur,
-  ...rest
-}: InputProps) {
+export default function Input({ label, icon, password, number = false, desc, error, right, style, onFocus, onBlur, ...rest }: InputProps) {
   const theme = useTheme();
   const [show, setShow] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -39,7 +25,7 @@ export default function Input({
   return (
     <View style={{ paddingVertical: Spacing.two }}>
       {label ? (
-        <ThemedText type="small" themeColor="textSecondary" style={{ marginBottom: Spacing.two }}>
+        <ThemedText type="label" themeColor="textSecondary" style={{ marginBottom: Spacing.two }}>
           {label}
         </ThemedText>
       ) : null}
@@ -47,19 +33,27 @@ export default function Input({
         style={{
           flexDirection: "row",
           alignItems: desc ? "flex-start" : "center",
-          minHeight: desc ? 110 : 58,
-          paddingHorizontal: Spacing.three,
+          minHeight: desc ? 110 : 54,
           borderRadius: Radius.md,
           backgroundColor: theme.card,
           borderWidth: 1.5,
           borderColor: error ? theme.danger : focused ? theme.accent : theme.line,
+          overflow: "hidden",
         }}
       >
-        {icon && <Ionicons name={icon} size={20} color={focused ? theme.accent : theme.textSecondary} style={{ marginRight: Spacing.two, marginTop: desc ? 16 : 0 }} />}
-        {prefix && (
-          <ThemedText type="bold" themeColor="textSecondary" style={{ marginRight: Spacing.one, marginTop: desc ? 14 : 0 }}>
-            {prefix}
-          </ThemedText>
+        {icon && (
+          <View
+            style={{
+              width: 50,
+              alignSelf: "stretch",
+              alignItems: "center",
+              justifyContent: desc ? "flex-start" : "center",
+              paddingTop: desc ? 16 : 0,
+              backgroundColor: focused ? theme.accentSurface : theme.cardAlt,
+            }}
+          >
+            <Ionicons name={icon} size={19} color={focused ? theme.accent : theme.textSecondary} />
+          </View>
         )}
         <TextInput
           {...rest}
@@ -68,8 +62,9 @@ export default function Input({
               flex: 1,
               color: theme.text,
               fontSize: 16,
+              paddingHorizontal: Spacing.three,
               paddingVertical: desc ? 16 : 0,
-              height: desc ? undefined : 58,
+              height: desc ? undefined : 54,
               textAlignVertical: desc ? "top" : "center",
             },
             style,
@@ -89,14 +84,14 @@ export default function Input({
           }}
         />
         {password && (
-          <TouchableOpacity onPress={() => setShow(!show)} hitSlop={10} accessibilityLabel={show ? "Hide password" : "Show password"}>
+          <TouchableOpacity onPress={() => setShow(!show)} hitSlop={10} style={{ paddingRight: Spacing.three }} accessibilityLabel={show ? "Hide password" : "Show password"}>
             <Ionicons name={show ? "eye-off-outline" : "eye-outline"} size={20} color={theme.textSecondary} />
           </TouchableOpacity>
         )}
         {right}
       </View>
       {error ? (
-        <ThemedText type="caption" style={{ color: theme.danger, marginTop: Spacing.one }}>
+        <ThemedText type="caption" style={{ color: theme.danger, marginTop: Spacing.one + 2 }}>
           {error}
         </ThemedText>
       ) : null}
